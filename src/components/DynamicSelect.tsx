@@ -36,6 +36,8 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
             .eq('key', storageKey)
             .single();
 
+          if (error) throw error;
+
           if (data && data.value) {
             setOptions(data.value as string[]);
             return;
