@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SimpleSelect } from './SimpleSelect';
 
 interface ClassTimePickerProps {
   label: string;
@@ -11,8 +12,6 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
   value,
   onChange,
 }) => {
-  // Try to parse existing value if present.
-  // Format: "2026年6月14日 10:00-12:00"
   const [dateStr, setDateStr] = useState<string>('');
   const [startTime, setStartTime] = useState<string>('10:00');
   const [endTime, setEndTime] = useState<string>('12:00');
@@ -33,7 +32,6 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
     if (dateStr && startTime && endTime) {
       const parts = dateStr.split('-');
       if (parts.length === 3) {
-        // e.g., parts = ["2026", "06", "14"]
         const year = parts[0];
         const month = parseInt(parts[1], 10);
         const day = parseInt(parts[2], 10);
@@ -46,13 +44,34 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
   }, [dateStr, startTime, endTime, onChange, value]);
 
   const generateTimeOptions = () => {
-    const times = [];
-    for (let i = 6; i <= 23; i++) {
+    const times: string[] = [];
+    for (let i = 8; i <= 21; i++) {
       const hour = i.toString().padStart(2, '0');
       times.push(`${hour}:00`);
-      times.push(`${hour}:30`);
+      if (i < 21) {
+        times.push(`${hour}:30`);
+      }
     }
     return times;
+  };
+
+  const addTwoHours = (timeStr: string): string => {
+    const [hStr, mStr] = timeStr.split(':');
+    let h = parseInt(hStr, 10) + 2;
+    let m = parseInt(mStr, 10);
+    if (h > 21 || (h === 21 && m > 0)) {
+      h = 21;
+      m = 0;
+    }
+    const hFormatted = h.toString().padStart(2, '0');
+    const mFormatted = m.toString().padStart(2, '0');
+    return `${hFormatted}:${mFormatted}`;
+  };
+
+  const handleStartTimeChange = (newStartTime: string) => {
+    setStartTime(newStartTime);
+    const autoEndTime = addTwoHours(newStartTime);
+    setEndTime(autoEndTime);
   };
 
   const timeOptions = generateTimeOptions();
@@ -68,23 +87,19 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
           className="cs-input"
           style={{ flex: 1 }}
         />
-        <select 
+        <SimpleSelect
+          options={timeOptions}
           value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          className="cs-input"
+          onChange={handleStartTimeChange}
           style={{ flex: 1 }}
-        >
-          {timeOptions.map(t => <option key={`start-${t}`} value={t}>{t}</option>)}
-        </select>
+        />
         <span style={{ alignSelf: 'center', color: 'var(--color-muted)' }}>-</span>
-        <select 
+        <SimpleSelect
+          options={timeOptions}
           value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          className="cs-input"
+          onChange={setEndTime}
           style={{ flex: 1 }}
-        >
-          {timeOptions.map(t => <option key={`end-${t}`} value={t}>{t}</option>)}
-        </select>
+        />
       </div>
     </div>
   );

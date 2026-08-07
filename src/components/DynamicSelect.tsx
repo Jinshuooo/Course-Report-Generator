@@ -21,6 +21,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
   const [options, setOptions] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { user, isGuest } = useAppContext();
@@ -81,7 +82,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
           user_id: user.id,
           key: storageKey,
           value: newOptions
-        });
+        }, { onConflict: 'user_id,key' });
       } catch (err) {
         console.error('Failed to save user_data:', err);
       }
@@ -89,13 +90,19 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
   };
 
   const handleAdd = () => {
-    if (inputValue.trim() && !options.includes(inputValue.trim())) {
-      const newOptions = [...options, inputValue.trim()];
-      saveOptions(newOptions);
-      onChange(inputValue.trim());
-      setInputValue('');
-      setIsOpen(false);
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    if (options.includes(trimmed)) {
+      setErrorMsg('该选项已存在');
+      setTimeout(() => setErrorMsg(''), 1500);
+      return;
     }
+    const newOptions = [...options, trimmed];
+    saveOptions(newOptions);
+    onChange(trimmed);
+    setInputValue('');
+    setErrorMsg('');
+    setIsOpen(false);
   };
 
   const handleDelete = (e: React.MouseEvent, optionToRemove: string) => {
@@ -127,27 +134,37 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
 
       {isOpen && (
         <div className="cs-select-dropdown">
-          <div className="cs-flex" style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-surface)' }}>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAdd();
-              }}
-              placeholder="输入新选项..."
-              className="cs-input"
-              style={{ padding: '0.5rem', marginRight: '0.5rem' }}
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-              className="cs-btn" 
-              style={{ padding: '0.5rem 1rem' }}
-              disabled={!inputValue.trim()}
-            >
-              <Plus size={16} />
-            </button>
+          <div className="cs-flex-col" style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-surface)' }}>
+            <div className="cs-flex">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  if (errorMsg) setErrorMsg('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAdd();
+                }}
+                placeholder="输入新选项..."
+                className="cs-input"
+                style={{ padding: '0.5rem', marginRight: '0.5rem' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleAdd(); }}
+                className="cs-btn" 
+                style={{ padding: '0.5rem 1rem' }}
+                disabled={!inputValue.trim()}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {errorMsg && (
+              <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
+                {errorMsg}
+              </div>
+            )}
           </div>
           
           {options.length === 0 ? (

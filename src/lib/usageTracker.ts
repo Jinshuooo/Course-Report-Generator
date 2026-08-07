@@ -52,8 +52,8 @@ const getLocalUsageRecords = (): UsageRecord[] => {
   return [];
 };
 
-// DeepSeek Pricing (Approximate CNY per 1M tokens)
-// Model: deepseek-chat
+// DeepSeek Pricing (CNY per 1M tokens)
+// Model: deepseek-v4-flash
 const INPUT_PRICE_PER_M = 1.0;
 const OUTPUT_PRICE_PER_M = 2.0;
 

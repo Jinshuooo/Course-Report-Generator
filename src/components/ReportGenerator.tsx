@@ -3,20 +3,43 @@ import { useAppContext } from '../contexts/AppContext';
 import { streamDeepSeek } from '../lib/deepseek';
 import { Play, Copy, CheckCircle2, AlertCircle } from 'lucide-react';
 import { DynamicSelect } from './DynamicSelect';
+import { SimpleSelect } from './SimpleSelect';
 import { ClassTimePicker } from './ClassTimePicker';
 import { addUsageRecord } from '../lib/usageTracker';
+
+const getDefaultSendTime = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return '上午';
+  if (hour >= 12 && hour < 18) return '下午';
+  return '晚上';
+};
 
 export const ReportGenerator: React.FC = () => {
   const { apiKey, user, isGuest } = useAppContext();
   
   // Form State
-  const [studentName, setStudentName] = useState('');
-  const [sendTime, setSendTime] = useState('下午');
+  const [studentName, setStudentName] = useState(() => localStorage.getItem('cs_last_student') || '');
+  const [sendTime, setSendTime] = useState(getDefaultSendTime);
   const [classTime, setClassTime] = useState('');
-  const [subject, setSubject] = useState('');
-  const [teacher, setTeacher] = useState('');
+  const [subject, setSubject] = useState(() => localStorage.getItem('cs_last_subject') || '');
+  const [teacher, setTeacher] = useState(() => localStorage.getItem('cs_last_teacher') || '');
   const [homework, setHomework] = useState('');
   const [contentInput, setContentInput] = useState('');
+
+  const handleStudentChange = (val: string) => {
+    setStudentName(val);
+    localStorage.setItem('cs_last_student', val);
+  };
+
+  const handleSubjectChange = (val: string) => {
+    setSubject(val);
+    localStorage.setItem('cs_last_subject', val);
+  };
+
+  const handleTeacherChange = (val: string) => {
+    setTeacher(val);
+    localStorage.setItem('cs_last_teacher', val);
+  };
   
   // Generation State
   const [deepseekOutput, setDeepseekOutput] = useState('');
@@ -81,11 +104,17 @@ ${dsOut}`;
     setDeepseekOutput('');
 
     try {
-      await streamDeepSeek(apiKey, contentInput, (chunk) => {
-        setDeepseekOutput((prev) => prev + chunk);
-      }, (promptTokens, completionTokens) => {
-        addUsageRecord(promptTokens, completionTokens, user?.id, isGuest);
-      });
+      await streamDeepSeek(
+        apiKey,
+        contentInput,
+        (chunk) => {
+          setDeepseekOutput((prev) => prev + chunk);
+        },
+        (promptTokens, completionTokens) => {
+          addUsageRecord(promptTokens, completionTokens, user?.id, isGuest);
+        },
+        studentName
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '生成过程中发生错误');
     } finally {
@@ -113,22 +142,16 @@ ${dsOut}`;
               label="1. 学生姓名"
               storageKey="cs_student_names"
               value={studentName}
-              onChange={setStudentName}
+              onChange={handleStudentChange}
               placeholder="添加或选择学生"
             />
             
-            <div className="cs-flex-col cs-mb-4">
-              <label className="cs-label">2. 反馈发送时间</label>
-              <select 
-                className="cs-input" 
-                value={sendTime}
-                onChange={(e) => setSendTime(e.target.value)}
-              >
-                <option value="上午">上午</option>
-                <option value="下午">下午</option>
-                <option value="晚上">晚上</option>
-              </select>
-            </div>
+            <SimpleSelect
+              label="2. 反馈发送时间"
+              options={['上午', '下午', '晚上']}
+              value={sendTime}
+              onChange={setSendTime}
+            />
           </div>
 
           <ClassTimePicker
@@ -142,7 +165,7 @@ ${dsOut}`;
               label="4. 科目"
               storageKey="cs_subjects"
               value={subject}
-              onChange={setSubject}
+              onChange={handleSubjectChange}
               placeholder="如：物理"
             />
             
@@ -150,7 +173,7 @@ ${dsOut}`;
               label="5. 老师称呼"
               storageKey="cs_teachers"
               value={teacher}
-              onChange={setTeacher}
+              onChange={handleTeacherChange}
               placeholder="如：江老师"
             />
           </div>

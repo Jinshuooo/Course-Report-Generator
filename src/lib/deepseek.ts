@@ -268,7 +268,17 @@ export const SYSTEM_PROMPT = `你是一名资深初中物理一对一家教老�
 
 严格保持该格式输出。`;
 
-export const streamDeepSeek = async (apiKey: string, prompt: string, onUpdate: (chunk: string) => void, onUsage?: (promptTokens: number, completionTokens: number) => void) => {
+export const streamDeepSeek = async (
+  apiKey: string,
+  prompt: string,
+  onUpdate: (chunk: string) => void,
+  onUsage?: (promptTokens: number, completionTokens: number) => void,
+  studentName?: string
+) => {
+  const userContent = studentName
+    ? `【重要指令】在以下反馈内容中，所有提到"学生"、"孩子"、"该生"等泛称的地方，必须替换为「${studentName}」。不允许使用任何泛称代替学生名字。\n\n以下是课堂内容摘要：\n${prompt}`
+    : prompt;
+
   const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
@@ -276,10 +286,10 @@ export const streamDeepSeek = async (apiKey: string, prompt: string, onUpdate: (
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model: 'deepseek-v4-flash',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
+        { role: 'user', content: userContent }
       ],
       stream: true,
       stream_options: { include_usage: true },

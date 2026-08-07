@@ -105,7 +105,7 @@ export const ApiUsageDashboard: React.FC<ApiUsageDashboardProps> = ({ onClose })
           </div>
 
           <p style={{ fontSize: '0.875rem', color: 'var(--color-secondary)' }}>
-            以下是本设备记录的生成用量（预估消费按官方标准 1元/1M Input, 2元/1M Output 估算）。
+            以下是本设备记录的生成用量（预估消费按 DeepSeek-V4-Flash 官方标准 1元/1M Input, 2元/1M Output 估算）。
           </p>
 
           <div className="cs-grid-2" style={{ gap: '1rem' }}>
