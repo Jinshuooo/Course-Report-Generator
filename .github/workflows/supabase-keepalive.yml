@@ -1,0 +1,80 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # 每天 UTC 02:17（北京时间 10:17）发起一次真实的数据库查询
+    - cron: '17 2 * * *'
+    # 每月 1 日提交一次心跳，避免公开仓库 60 天无活动导致定时工作流被 GitHub 停用
+    - cron: '47 2 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::缺少仓库 Secrets：SUPABASE_URL / SUPABASE_ANON_KEY。请在 Settings → Secrets and variables → Actions 中添加。"
+            exit 1
+          fi
+
+          base="${SUPABASE_URL%/}"
+          endpoint="${base}/rest/v1/user_settings?select=id&limit=1"
+          body="$(mktemp)"
+
+          echo "Pinging ${base} ..."
+          code="$(curl -sS -o "${body}" -w '%{http_code}' \
+            --retry 3 --retry-delay 15 --max-time 30 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Accept: application/json" \
+            "${endpoint}")"
+
+          echo "HTTP ${code}"
+          head -c 500 "${body}" || true
+          echo
+
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::Supabase 保活请求失败（HTTP ${code}）。如果项目已被暂停，请先到 Supabase 控制台恢复。"
+            exit 1
+          fi
+
+          echo "Supabase 项目活跃，保活成功。"
+
+  heartbeat:
+    name: Keep scheduled workflow enabled
+    if: github.event_name == 'schedule' && github.event.schedule == '47 2 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Commit heartbeat
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          mkdir -p .github
+          printf 'Last keep-alive heartbeat: %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > .github/keepalive.txt
+          git add .github/keepalive.txt
+          git commit -m "chore: supabase keep-alive heartbeat [skip ci]"
+          git push
