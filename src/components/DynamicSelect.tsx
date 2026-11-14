@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef, useId } from 'react';
+import { X, Plus, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAppContext } from '../contexts/AppContext';
 
-interface DynamicSelectProps {
+export interface DynamicSelectProps {
   label: string;
   storageKey: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  id?: string;
 }
 
 export const DynamicSelect: React.FC<DynamicSelectProps> = ({
@@ -16,13 +17,21 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
   storageKey,
   value,
   onChange,
-  placeholder = '请选择或添加'
+  placeholder = '请选择或添加',
+  id,
 }) => {
   const [options, setOptions] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const addInputRef = useRef<HTMLInputElement>(null);
+  const generatedId = useId();
+  const selectId = id || generatedId;
+  const listboxId = `${selectId}-listbox`;
 
   const { user, isGuest } = useAppContext();
 
@@ -72,6 +81,25 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const openDropdown = () => {
+    const idx = options.indexOf(value);
+    setActiveIndex(idx >= 0 ? idx : 0);
+    setIsOpen(true);
+  };
+
+  const closeDropdown = () => {
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const toggleDropdown = () => {
+    if (isOpen) {
+      setIsOpen(false);
+    } else {
+      openDropdown();
+    }
+  };
+
   const saveOptions = async (newOptions: string[]) => {
     setOptions(newOptions);
     localStorage.setItem(storageKey, JSON.stringify(newOptions));
@@ -81,7 +109,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
         await supabase.from('user_data').upsert({
           user_id: user.id,
           key: storageKey,
-          value: newOptions
+          value: newOptions,
         }, { onConflict: 'user_id,key' });
       } catch (err) {
         console.error('Failed to save user_data:', err);
@@ -94,7 +122,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
     if (!trimmed) return;
     if (options.includes(trimmed)) {
       setErrorMsg('该选项已存在');
-      setTimeout(() => setErrorMsg(''), 1500);
+      setTimeout(() => setErrorMsg(''), 1800);
       return;
     }
     const newOptions = [...options, trimmed];
@@ -103,6 +131,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
     setInputValue('');
     setErrorMsg('');
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   const handleDelete = (e: React.MouseEvent, optionToRemove: string) => {
@@ -116,27 +145,68 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
 
   const handleSelect = (opt: string) => {
     onChange(opt);
-    setIsOpen(false);
+    closeDropdown();
+  };
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDropdown();
+      }
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeDropdown();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev + 1 < options.length ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev - 1 >= 0 ? prev - 1 : options.length - 1));
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < options.length) {
+        handleSelect(options[activeIndex]);
+      }
+    }
   };
 
   return (
-    <div className="cs-flex-col cs-mb-4" ref={containerRef} style={{ position: 'relative' }}>
-      <label className="cs-label">{label}</label>
-      
-      <div 
-        className="cs-input cs-flex cs-items-center cs-justify-between" 
-        style={{ cursor: 'pointer', background: 'var(--color-surface)' }}
-        onClick={() => setIsOpen(!isOpen)}
+    <div className="cs-form-group" ref={containerRef} style={{ position: 'relative' }}>
+      <label htmlFor={selectId} className="cs-label">
+        {label}
+      </label>
+
+      <button
+        ref={triggerRef}
+        id={selectId}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={isOpen && activeIndex >= 0 && activeIndex < options.length ? `${selectId}-opt-${activeIndex}` : undefined}
+        aria-label={label}
+        className="cs-select-trigger"
+        onClick={toggleDropdown}
+        onKeyDown={handleTriggerKeyDown}
       >
-        <span>{value || <span style={{ color: 'var(--color-muted)' }}>{placeholder}</span>}</span>
-        <ChevronDown size={18} color="var(--color-secondary)" />
-      </div>
+        <span style={{ color: value ? 'var(--color-ink)' : 'var(--color-ink-3)', fontWeight: value ? 500 : 400 }}>
+          {value || placeholder}
+        </span>
+        <ChevronDown size={18} className={`cs-select-chevron ${isOpen ? 'open' : ''}`} />
+      </button>
 
       {isOpen && (
         <div className="cs-select-dropdown">
-          <div className="cs-flex-col" style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-surface)' }}>
-            <div className="cs-flex">
+          {/* Add-new Section */}
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-hairline)', backgroundColor: 'var(--color-elevated)' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input
+                ref={addInputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => {
@@ -144,55 +214,93 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
                   if (errorMsg) setErrorMsg('');
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAdd();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAdd();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsOpen(false);
+                    triggerRef.current?.focus();
+                  }
                 }}
-                placeholder="输入新选项..."
+                placeholder="输入新项目并添加..."
+                aria-label={`添加新${label}`}
                 className="cs-input"
-                style={{ padding: '0.5rem', marginRight: '0.5rem' }}
+                style={{ height: '44px', fontSize: '16px', padding: '0 12px' }}
                 onClick={(e) => e.stopPropagation()}
               />
-              <button 
-                onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-                className="cs-btn" 
-                style={{ padding: '0.5rem 1rem' }}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAdd();
+                }}
+                className="cs-btn cs-btn-coral"
+                style={{ height: '44px', padding: '0 14px', fontSize: '14px', flexShrink: 0 }}
                 disabled={!inputValue.trim()}
+                title="添加新项"
+                aria-label="添加新项"
               >
                 <Plus size={16} />
+                <span>添加</span>
               </button>
             </div>
             {errorMsg && (
-              <div style={{ color: 'var(--color-error)', fontSize: '0.75rem', marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
+              <div role="alert" style={{ color: 'var(--color-error)', fontSize: '12px', marginTop: '6px', paddingLeft: '4px' }}>
                 {errorMsg}
               </div>
             )}
           </div>
-          
-          {options.length === 0 ? (
-            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-muted)' }}>
-              暂无选项，请添加
-            </div>
-          ) : (
-            options.map(opt => (
-              <div 
-                key={opt} 
-                className="cs-select-option"
-                onClick={() => handleSelect(opt)}
-                style={{ 
-                  backgroundColor: value === opt ? 'var(--color-surface)' : 'transparent',
-                  fontWeight: value === opt ? '600' : 'normal'
-                }}
-              >
-                <span>{opt}</span>
-                <button 
-                  onClick={(e) => handleDelete(e, opt)}
-                  className="cs-btn-icon"
-                  title="删除此选项"
-                >
-                  <X size={16} />
-                </button>
+
+          {/* Options List */}
+          <div
+            id={listboxId}
+            role="listbox"
+            tabIndex={-1}
+            aria-label={label}
+            style={{ maxHeight: '200px', overflowY: 'auto' }}
+          >
+            {options.length === 0 ? (
+              <div style={{ padding: '20px 14px', textAlign: 'center', color: 'var(--color-ink-3)', fontSize: '14px' }}>
+                暂无预设选项，请在上方添加
               </div>
-            ))
-          )}
+            ) : (
+              options.map((opt, index) => {
+                const isSelected = value === opt;
+                const isActive = activeIndex === index;
+                return (
+                  <div
+                    key={opt}
+                    id={`${selectId}-opt-${index}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`cs-select-option ${isSelected ? 'is-selected' : ''}`}
+                    style={{
+                      backgroundColor: isActive && !isSelected ? 'var(--color-elevated)' : undefined,
+                    }}
+                    onClick={() => handleSelect(opt)}
+                    onMouseEnter={() => setActiveIndex(index)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      {isSelected && <Check size={16} color="var(--color-coral)" style={{ flexShrink: 0 }} />}
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {opt}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(e, opt)}
+                      className="cs-select-delete-btn"
+                      title={`删除「${opt}」`}
+                      aria-label={`删除「${opt}」`}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>

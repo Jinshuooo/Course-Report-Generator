@@ -4,7 +4,7 @@ import { AuthModal } from './components/AuthModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ReportGenerator } from './components/ReportGenerator';
 import { ApiUsageDashboard } from './components/ApiUsageDashboard';
-import { BookOpen, Settings, LogOut, Activity } from 'lucide-react';
+import { BookOpen, Settings, LogOut, Activity, Loader2 } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { user, isGuest, loading, logout, apiKey } = useAppContext();
@@ -12,69 +12,78 @@ const MainApp: React.FC = () => {
   const [showUsage, setShowUsage] = useState(false);
 
   if (loading) {
-    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>加载中...</div>;
+    return (
+      <div
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'var(--color-bg)',
+          color: 'var(--color-ink-2)',
+          gap: '12px',
+        }}
+      >
+        <Loader2 size={32} className="cs-spinning" style={{ color: 'var(--color-coral)' }} />
+        <span style={{ fontSize: '14px', fontWeight: 500 }}>正在加载系统...</span>
+      </div>
+    );
   }
 
-  // 如果既没有登录，也没有选择游客模式
+  // If not logged in and not guest, show Auth screen
   if (!user && !isGuest) {
     return <AuthModal />;
   }
 
-  // 如果没有配置 API Key，且没在显示设置窗口，则强制显示设置窗口
+  // If no API key configured, force settings modal
   const needsConfig = !apiKey;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: 'var(--color-surface)',
-        borderBottom: 'var(--border-width) solid var(--color-primary)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        boxShadow: '0 2px 0 var(--color-muted)'
-      }}>
-        <div className="cs-container cs-flex cs-items-center cs-justify-between" style={{ height: '4rem', padding: '0 1rem' }}>
-          <div className="cs-flex cs-items-center cs-gap-2">
-            <div style={{
-              backgroundColor: 'var(--color-primary)',
-              color: 'var(--color-background)',
-              padding: '0.4rem',
-              borderRadius: 'var(--radius)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+    <div className="cs-app-shell">
+      {/* Sticky Translucent Header */}
+      <header className="cs-header-shell">
+        <div className="cs-container cs-header-inner">
+          {/* Brand mark & title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div className="cs-brand-mark" aria-hidden="true">
               <BookOpen size={20} />
             </div>
-            <h1 className="cs-title" style={{ fontSize: '1.25rem', margin: 0, letterSpacing: '-0.02em' }}>课堂反馈系统</h1>
+            <h1 className="cs-brand-title">课堂反馈系统</h1>
           </div>
 
-          <div className="cs-flex cs-items-center cs-gap-4">
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-secondary)' }}>
-              {isGuest ? '游客模式 (本地)' : `已登录: ${user?.email}`}
+          {/* Right Action Group */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <div className="cs-status-pill" title={isGuest ? '游客模式 (数据仅本地保存)' : `已登录: ${user?.email}`}>
+              {isGuest ? '游客模式' : user?.email}
             </div>
 
             <button
+              type="button"
               onClick={() => setShowUsage(true)}
               className="cs-btn-icon"
               title="API 用量统计"
+              aria-label="查看 API 用量统计"
             >
               <Activity size={20} />
             </button>
 
             <button
+              type="button"
               onClick={() => setShowSettings(true)}
               className="cs-btn-icon"
               title="设置 API Key"
+              aria-label="设置 API Key"
             >
               <Settings size={20} />
             </button>
 
             <button
+              type="button"
               onClick={logout}
               className="cs-btn-icon"
-              title="退出/切换账号"
+              title="退出登录或切换模式"
+              aria-label="退出登录或切换模式"
             >
               <LogOut size={20} />
             </button>
@@ -83,7 +92,7 @@ const MainApp: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="cs-container" style={{ flex: 1, padding: '1.5rem 1rem' }}>
+      <main className="cs-container" style={{ flex: 1, paddingTop: '24px' }}>
         <ReportGenerator />
       </main>
 

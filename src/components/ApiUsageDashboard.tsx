@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Activity, Calendar, Hash } from 'lucide-react';
+import { RefreshCw, Activity, Calendar, Coins } from 'lucide-react';
 import { fetchStats, fetchDeepSeekBalance } from '../lib/usageTracker';
 import { useAppContext } from '../contexts/AppContext';
+import { Modal } from './ui/Modal';
 
-interface ApiUsageDashboardProps {
+export interface ApiUsageDashboardProps {
   onClose: () => void;
 }
 
@@ -44,7 +45,6 @@ export const ApiUsageDashboard: React.FC<ApiUsageDashboardProps> = ({ onClose })
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-    // Set up an interval to refresh local stats every minute just in case
     const interval = setInterval(() => {
       loadData();
     }, 60000);
@@ -52,110 +52,148 @@ export const ApiUsageDashboard: React.FC<ApiUsageDashboardProps> = ({ onClose })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, user, isGuest]);
 
+  const titleContent = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div
+        style={{
+          width: '32px',
+          height: '32px',
+          borderRadius: '8px',
+          backgroundColor: 'var(--color-coral-soft)',
+          color: 'var(--color-coral)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Activity size={18} />
+      </div>
+      <span>API 用量统计</span>
+    </div>
+  );
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(55, 53, 47, 0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 50,
-      padding: '1rem'
-    }}>
-      <div className="cs-card cs-flex-col" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div className="cs-flex cs-items-center cs-justify-between cs-mb-4">
-          <h2 className="cs-title cs-flex cs-items-center cs-gap-2">
-            <Activity size={24} />
-            API 用量统计
-          </h2>
-          <button onClick={onClose} className="cs-btn-icon">
-            <X size={20} />
-          </button>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={titleContent}
+      maxWidth="500px"
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Balance Card */}
+        <div
+          style={{
+            backgroundColor: 'var(--color-elevated)',
+            border: '1px solid var(--color-hairline)',
+            borderRadius: 'var(--radius-control)',
+            padding: '16px 20px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-ink-2)' }}>
+              账户余额 (CNY)
+            </span>
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={loading}
+              className="cs-btn-icon"
+              title="刷新余额与用量"
+              aria-label="刷新余额与用量"
+              style={{ width: '44px', height: '44px' }}
+            >
+              <RefreshCw size={16} className={loading ? 'cs-spinning' : ''} />
+            </button>
+          </div>
+
+          {error ? (
+            <div role="alert" style={{ color: 'var(--color-error)', fontSize: '13px' }}>
+              {error}
+            </div>
+          ) : (
+            <div style={{ fontSize: '28px', fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.02em' }} className="cs-tabular">
+              ¥ {balance !== null ? balance : '--'}
+            </div>
+          )}
+
+          {!apiKey && (
+            <div style={{ fontSize: '12px', color: 'var(--color-warning)', marginTop: '4px' }}>
+              未配置 API Key，无法查询实时余额
+            </div>
+          )}
         </div>
 
-        <div className="cs-flex-col cs-gap-4">
-          {/* Balance Section */}
-          <div style={{ backgroundColor: 'var(--color-surface)', padding: '1.25rem', borderRadius: 'var(--radius)', border: '1px solid rgba(55, 53, 47, 0.09)' }}>
-            <div className="cs-flex cs-items-center cs-justify-between cs-mb-2">
-              <span className="cs-label" style={{ margin: 0 }}>云端账户余额 (CNY)</span>
-              <button 
-                onClick={loadData} 
-                disabled={loading} 
-                className="cs-btn-icon" 
-                title="刷新数据"
-                style={{ padding: '0.25rem' }}
-              >
-                <RefreshCw size={16} className={loading ? 'spinning' : ''} />
-              </button>
+        {/* Pricing caption */}
+        <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', lineHeight: 1.4 }}>
+          消费估算基准：DeepSeek-V4-Flash 官方标准（输入 ¥1/1M Tokens，输出 ¥2/1M Tokens）。
+        </div>
+
+        {/* 2 Stat Tiles: Today and Month */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Today */}
+          <div
+            style={{
+              border: '1px solid var(--color-hairline)',
+              borderRadius: 'var(--radius-control)',
+              padding: '14px',
+              backgroundColor: 'var(--color-card)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--color-ink-2)', fontSize: '13px', fontWeight: 500 }}>
+              <Calendar size={14} color="var(--color-coral)" />
+              <span>今日用量</span>
             </div>
-            {error ? (
-              <div style={{ color: 'var(--color-error)', fontSize: '0.875rem' }}>{error}</div>
-            ) : (
-              <div style={{ fontSize: '2rem', fontFamily: 'var(--font-heading)', fontWeight: 700, color: 'var(--color-primary)' }}>
-                ¥ {balance !== null ? balance : '--'}
-              </div>
-            )}
-            {!apiKey && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginTop: '0.5rem' }}>未配置 API Key，无法查询余额。</div>
-            )}
-          </div>
-
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-secondary)' }}>
-            以下是本设备记录的生成用量（预估消费按 DeepSeek-V4-Flash 官方标准 1元/1M Input, 2元/1M Output 估算）。
-          </p>
-
-          <div className="cs-grid-2" style={{ gap: '1rem' }}>
-            {/* Today's Usage */}
-            <div style={{ border: '1px solid rgba(55, 53, 47, 0.16)', padding: '1rem', borderRadius: 'var(--radius)' }}>
-              <div className="cs-flex cs-items-center cs-gap-2 cs-mb-2">
-                <Calendar size={16} color="var(--color-secondary)" />
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>本日用量</span>
-              </div>
-              <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-heading)', fontWeight: 700, marginBottom: '0.5rem' }}>
-                {stats.today.totalTokens.toLocaleString()} <span style={{ fontSize: '0.875rem', fontWeight: 400, fontFamily: 'var(--font-body)', color: 'var(--color-secondary)' }}>Tokens</span>
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-secondary)' }}>
-                预估消费: ¥ {stats.today.estimatedCost.toFixed(4)}
-              </div>
+            <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '4px' }} className="cs-tabular">
+              {stats.today.totalTokens.toLocaleString()}{' '}
+              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-ink-3)' }}>Tokens</span>
             </div>
-
-            {/* This Month's Usage */}
-            <div style={{ border: '1px solid rgba(55, 53, 47, 0.16)', padding: '1rem', borderRadius: 'var(--radius)' }}>
-              <div className="cs-flex cs-items-center cs-gap-2 cs-mb-2">
-                <Hash size={16} color="var(--color-secondary)" />
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>本月用量</span>
-              </div>
-              <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-heading)', fontWeight: 700, marginBottom: '0.5rem' }}>
-                {stats.month.totalTokens.toLocaleString()} <span style={{ fontSize: '0.875rem', fontWeight: 400, fontFamily: 'var(--font-body)', color: 'var(--color-secondary)' }}>Tokens</span>
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-secondary)' }}>
-                预估消费: ¥ {stats.month.estimatedCost.toFixed(4)}
-              </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-ink-2)' }} className="cs-tabular">
+              预估: ¥ {stats.today.estimatedCost.toFixed(4)}
             </div>
           </div>
 
-          <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(55, 53, 47, 0.09)', paddingTop: '1rem' }}>
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-secondary)' }}>
-              累计总用量: {stats.total.totalTokens.toLocaleString()} Tokens (约 ¥{stats.total.estimatedCost.toFixed(4)})
+          {/* Month */}
+          <div
+            style={{
+              border: '1px solid var(--color-hairline)',
+              borderRadius: 'var(--radius-control)',
+              padding: '14px',
+              backgroundColor: 'var(--color-card)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--color-ink-2)', fontSize: '13px', fontWeight: 500 }}>
+              <Coins size={14} color="var(--color-coral)" />
+              <span>本月用量</span>
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '4px' }} className="cs-tabular">
+              {stats.month.totalTokens.toLocaleString()}{' '}
+              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-ink-3)' }}>Tokens</span>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-ink-2)' }} className="cs-tabular">
+              预估: ¥ {stats.month.estimatedCost.toFixed(4)}
             </div>
           </div>
+        </div>
+
+        {/* Cumulative total footer */}
+        <div
+          style={{
+            borderTop: '1px solid var(--color-hairline)',
+            paddingTop: '12px',
+            fontSize: '13px',
+            color: 'var(--color-ink-2)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          className="cs-tabular"
+        >
+          <span>累计总用量</span>
+          <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>
+            {stats.total.totalTokens.toLocaleString()} Tokens (约 ¥{stats.total.estimatedCost.toFixed(4)})
+          </span>
         </div>
       </div>
-      
-      <style>
-        {`
-          @keyframes spin {
-            100% { transform: rotate(360deg); }
-          }
-          .spinning {
-            animation: spin 1s linear infinite;
-          }
-        `}
-      </style>
-    </div>
+    </Modal>
   );
 };

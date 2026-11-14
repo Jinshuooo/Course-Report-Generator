@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { streamDeepSeek } from '../lib/deepseek';
-import { Play, Copy, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Play, Copy, Check, AlertCircle, ClipboardList, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { DynamicSelect } from './DynamicSelect';
 import { SimpleSelect } from './SimpleSelect';
 import { ClassTimePicker } from './ClassTimePicker';
@@ -16,7 +16,7 @@ const getDefaultSendTime = (): string => {
 
 export const ReportGenerator: React.FC = () => {
   const { apiKey, user, isGuest } = useAppContext();
-  
+
   // Form State
   const [studentName, setStudentName] = useState(() => localStorage.getItem('cs_last_student') || '');
   const [sendTime, setSendTime] = useState(getDefaultSendTime);
@@ -40,18 +40,20 @@ export const ReportGenerator: React.FC = () => {
     setTeacher(val);
     localStorage.setItem('cs_last_teacher', val);
   };
-  
+
   // Generation State
   const [deepseekOutput, setDeepseekOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const outputSectionRef = useRef<HTMLDivElement>(null);
+
   const getFinalReport = () => {
     if (!deepseekOutput) return '';
-    
+
     let dsOut = deepseekOutput.trim();
-    
+
     // Check how many points exist to append homework if applicable.
     if (homework.trim()) {
       let nextNum;
@@ -63,13 +65,13 @@ export const ReportGenerator: React.FC = () => {
         // Fallback, see if there's any numbered item
         nextNum = dsOut.split('\n').filter(line => /^\d+\./.test(line)).length + 1;
       }
-      
+
       // Remove trailing newlines
       dsOut = dsOut.replace(/\n+$/, '');
-      
+
       // Remove blank lines between numbered items
       dsOut = dsOut.replace(/\n\s*\n/g, '\n');
-      
+
       dsOut += `\n${nextNum}. 作业：${homework}`;
     } else {
       // Even if no homework, remove blank lines between numbered items
@@ -87,21 +89,30 @@ ${dsOut}`;
 
   const handleGenerate = async () => {
     if (!apiKey) {
-      setError('请先配置 DeepSeek API Key');
-      return;
-    }
-    if (!contentInput.trim()) {
-      setError('请提供上课内容摘要');
+      setError('请先在顶部设置中配置 DeepSeek API Key');
       return;
     }
     if (!studentName || !subject || !teacher || !classTime) {
-      setError('请完整填写表单选项');
+      setError('请完整填写学生姓名、上课时间、科目及老师称呼');
+      return;
+    }
+    if (!contentInput.trim()) {
+      setError('请提供本次课程的内容摘要');
       return;
     }
 
     setIsGenerating(true);
     setError('');
     setDeepseekOutput('');
+
+    // On mobile, scroll output card into view
+    if (window.innerWidth < 1024 && outputSectionRef.current) {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      outputSectionRef.current.scrollIntoView({
+        behavior: prefersReduced ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    }
 
     try {
       await streamDeepSeek(
@@ -122,141 +133,317 @@ ${dsOut}`;
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(getFinalReport());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    const textToCopy = getFinalReport();
+    if (!textToCopy) return;
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
   };
 
   return (
-    <div className="cs-grid-2">
-      {/* Left Column - Form */}
-      <div className="cs-card cs-flex-col">
-        <div className="cs-header">
-          <h2 className="cs-title">📝 填写课程信息</h2>
-        </div>
-        
-        <div className="cs-flex-col" style={{ flex: 1, overflowY: 'auto' }}>
-          <div className="cs-grid-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
-            <DynamicSelect
-              label="1. 学生姓名"
-              storageKey="cs_student_names"
-              value={studentName}
-              onChange={handleStudentChange}
-              placeholder="添加或选择学生"
-            />
-            
-            <SimpleSelect
-              label="2. 反馈发送时间"
-              options={['上午', '下午', '晚上']}
-              value={sendTime}
-              onChange={setSendTime}
-            />
+    <>
+      <div className="cs-workspace-grid cs-main-pad-bottom">
+        {/* Left Column (7 cols): Input Form */}
+        <div className="cs-col-form cs-card cs-rise-in">
+          {/* Card Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '16px', marginBottom: '20px', borderBottom: '1px solid var(--color-hairline)' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--color-coral-soft)',
+                color: 'var(--color-coral)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ClipboardList size={18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--color-ink)' }}>填写课程信息</h2>
+            </div>
           </div>
 
-          <ClassTimePicker
-            label="3. 上课时间"
-            value={classTime}
-            onChange={setClassTime}
-          />
+          {/* Form Body */}
+          <div>
+            {/* Row 1: Student name & send time */}
+            <div className="cs-form-row-2">
+              <DynamicSelect
+                label="学生姓名"
+                storageKey="cs_student_names"
+                value={studentName}
+                onChange={handleStudentChange}
+                placeholder="选择或输入添加学生"
+              />
+              <SimpleSelect
+                label="反馈发送时间"
+                options={['上午', '下午', '晚上']}
+                value={sendTime}
+                onChange={setSendTime}
+              />
+            </div>
 
-          <div className="cs-grid-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
-            <DynamicSelect
-              label="4. 科目"
-              storageKey="cs_subjects"
-              value={subject}
-              onChange={handleSubjectChange}
-              placeholder="如：物理"
+            {/* Row 2: Class time */}
+            <ClassTimePicker
+              label="上课时间"
+              value={classTime}
+              onChange={setClassTime}
             />
-            
-            <DynamicSelect
-              label="5. 老师称呼"
-              storageKey="cs_teachers"
-              value={teacher}
-              onChange={handleTeacherChange}
-              placeholder="如：江老师"
-            />
+
+            {/* Row 3: Subject & teacher */}
+            <div className="cs-form-row-2">
+              <DynamicSelect
+                label="科目"
+                storageKey="cs_subjects"
+                value={subject}
+                onChange={handleSubjectChange}
+                placeholder="选择或输入科目 (如物理)"
+              />
+              <DynamicSelect
+                label="老师称呼"
+                storageKey="cs_teachers"
+                value={teacher}
+                onChange={handleTeacherChange}
+                placeholder="选择或输入称呼 (如江老师)"
+              />
+            </div>
+
+            {/* Row 4: Homework */}
+            <div className="cs-form-group">
+              <label htmlFor="homework-input" className="cs-label">
+                课后作业
+              </label>
+              <input
+                id="homework-input"
+                type="text"
+                value={homework}
+                onChange={(e) => setHomework(e.target.value)}
+                placeholder="选填，例如：完成中考物理模拟卷第1-15题"
+                className="cs-input"
+              />
+            </div>
+
+            {/* Row 5: Content Summary */}
+            <div className="cs-form-group" style={{ marginBottom: '8px' }}>
+              <label htmlFor="content-input" className="cs-label">
+                上课内容摘要
+              </label>
+              <textarea
+                id="content-input"
+                value={contentInput}
+                onChange={(e) => setContentInput(e.target.value)}
+                placeholder="粘贴课堂板书要点、录音转文字笔记或要点摘要..."
+                className="cs-input"
+                rows={5}
+              />
+            </div>
           </div>
 
-          <div className="cs-flex-col cs-mb-4">
-            <label className="cs-label">6. 课后作业</label>
-            <input
-              type="text"
-              value={homework}
-              onChange={(e) => setHomework(e.target.value)}
-              placeholder="例如：2025年中考卷"
-              className="cs-input"
-            />
-          </div>
-
-          <div className="cs-flex-col cs-mb-4" style={{ flex: 1 }}>
-            <label className="cs-label">7. 上课内容摘要</label>
-            <textarea
-              value={contentInput}
-              onChange={(e) => setContentInput(e.target.value)}
-              placeholder="输入上课知识点或课堂录音转文字内容..."
-              className="cs-input"
-              style={{ minHeight: '120px', resize: 'vertical' }}
-            />
-          </div>
-        </div>
-
-        <div className="cs-mt-4" style={{ paddingTop: '1rem', borderTop: '1px solid rgba(55, 53, 47, 0.09)' }}>
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || !contentInput.trim()}
-            className="cs-btn"
-            style={{ width: '100%' }}
-          >
-            {isGenerating ? (
-              <span>正在生成中...</span>
-            ) : (
-              <>
-                <Play className="w-5 h-5 fill-current" />
-                生成课堂报告
-              </>
-            )}
-          </button>
+          {/* Inline Error (Desktop only) */}
           {error && (
-            <div className="cs-mt-4" style={{ color: 'var(--color-error)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={16} />
-              <span style={{ fontSize: '0.9rem' }}>{error}</span>
+            <div
+              role="alert"
+              className="cs-desktop-only-error"
+              style={{
+                marginTop: '16px',
+                padding: '12px 14px',
+                backgroundColor: 'var(--color-error-soft)',
+                border: '1px solid rgba(184, 67, 58, 0.2)',
+                borderRadius: 'var(--radius-control)',
+                color: 'var(--color-error)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+              }}
+            >
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Right Column - Output Preview */}
-      <div className="cs-card cs-flex-col" style={{ position: 'relative' }}>
-        <div className="cs-header cs-flex cs-items-center cs-justify-between">
-          <h2 className="cs-title">✨ 最终课堂反馈</h2>
-          {deepseekOutput && (
+          {/* Desktop Generate Button */}
+          <div
+            className="cs-desktop-only-btn"
+            style={{
+              paddingTop: '20px',
+              marginTop: '16px',
+              borderTop: '1px solid var(--color-hairline)',
+            }}
+          >
             <button
-              onClick={handleCopy}
-              className="cs-btn cs-btn-secondary"
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+              type="button"
+              onClick={handleGenerate}
+              disabled={isGenerating || !contentInput.trim()}
+              aria-busy={isGenerating}
+              className="cs-btn"
+              style={{ width: '100%', height: '48px' }}
             >
-              {copied ? (
-                <><CheckCircle2 size={16} color="var(--color-primary)" /> 已复制</>
+              {isGenerating ? (
+                <>
+                  <Loader2 size={18} className="cs-spinning" />
+                  <span>正在生成课堂报告...</span>
+                </>
               ) : (
-                <><Copy size={16} /> 复制文本</>
+                <>
+                  <Play size={18} fill="currentColor" color="var(--color-coral)" />
+                  <span>生成课堂报告</span>
+                </>
               )}
             </button>
-          )}
+          </div>
         </div>
-        <div className="cs-flex-col" style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--color-surface)', padding: '1.5rem', borderRadius: 'var(--radius)', border: '1px solid rgba(55, 53, 47, 0.09)' }}>
-          {deepseekOutput ? (
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-              {getFinalReport()}
+
+        {/* Right Column (5 cols): Sticky Paper Output */}
+        <div
+          ref={outputSectionRef}
+          className="cs-col-output cs-card-output cs-rise-in-delay-1"
+          style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}
+        >
+          {/* Output Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--color-hairline)',
+              backgroundColor: 'var(--color-card)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '7px',
+                  backgroundColor: 'var(--color-coral-soft)',
+                  color: 'var(--color-coral)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Sparkles size={16} />
+              </div>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-ink)' }}>课堂反馈</h2>
             </div>
-          ) : (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-muted)' }}>
-              <span style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</span>
-              <p>生成的报告将在这里显示</p>
-            </div>
-          )}
+
+            {deepseekOutput && !isGenerating && (
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="cs-btn cs-btn-secondary"
+                aria-label={copied ? '已复制到剪贴板' : '复制反馈文本'}
+                style={{
+                  height: '42px',
+                  padding: '0 14px',
+                  fontSize: '14px',
+                }}
+              >
+                {copied ? (
+                  <>
+                    <Check size={15} color="var(--color-success)" />
+                    <span style={{ color: 'var(--color-success)', fontWeight: 600 }} aria-live="polite">已复制</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={15} />
+                    <span>复制文本</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Report Paper Surface */}
+          <div className="cs-output-content-wrap">
+            {deepseekOutput ? (
+              <div className="cs-report-serif">
+                {getFinalReport()}
+                {isGenerating && <span className="cs-caret" aria-hidden="true" />}
+              </div>
+            ) : isGenerating ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '220px', color: 'var(--color-ink-2)' }}>
+                <Loader2 size={28} className="cs-spinning" style={{ color: 'var(--color-coral)', marginBottom: '12px' }} />
+                <p style={{ fontSize: '14px', margin: 0 }}>正在提炼要点并撰写反馈...</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '220px', textAlign: 'center', color: 'var(--color-ink-3)' }}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--color-coral-soft)',
+                    color: 'var(--color-coral)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <FileText size={22} />
+                </div>
+                <p style={{ fontSize: '14px', margin: 0, color: 'var(--color-ink-2)' }}>
+                  生成的反馈报告将呈现在这里
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Mobile Sticky Bottom Action Bar */}
+      <div className="cs-mobile-action-bar">
+        {error && (
+          <div
+            role="alert"
+            style={{
+              marginBottom: '10px',
+              padding: '8px 12px',
+              backgroundColor: 'var(--color-error-soft)',
+              borderRadius: 'var(--radius-control)',
+              color: 'var(--color-error)',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={isGenerating || !contentInput.trim()}
+          aria-busy={isGenerating}
+          className="cs-btn"
+          style={{ width: '100%', height: '48px' }}
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 size={18} className="cs-spinning" />
+              <span>正在生成...</span>
+            </>
+          ) : (
+            <>
+              <Play size={18} fill="currentColor" color="var(--color-coral)" />
+              <span>生成课堂报告</span>
+            </>
+          )}
+        </button>
+      </div>
+    </>
   );
 };

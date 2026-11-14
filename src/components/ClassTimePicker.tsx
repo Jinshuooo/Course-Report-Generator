@@ -1,32 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { SimpleSelect } from './SimpleSelect';
 
-interface ClassTimePickerProps {
+export interface ClassTimePickerProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  id?: string;
 }
 
 export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
   label,
   value,
   onChange,
+  id,
 }) => {
-  const [dateStr, setDateStr] = useState<string>('');
+  const [dateStr, setDateStr] = useState<string>(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
   const [startTime, setStartTime] = useState<string>('10:00');
   const [endTime, setEndTime] = useState<string>('12:00');
-
-  useEffect(() => {
-    if (!dateStr) {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDateStr(`${yyyy}-${mm}-${dd}`);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const generatedId = useId();
+  const dateInputId = id || `${generatedId}-date`;
 
   useEffect(() => {
     if (dateStr && startTime && endTime) {
@@ -57,11 +55,10 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
 
   const addTwoHours = (timeStr: string): string => {
     const [hStr, mStr] = timeStr.split(':');
-    let h = parseInt(hStr, 10) + 2;
-    let m = parseInt(mStr, 10);
+    const h = parseInt(hStr, 10) + 2;
+    const m = parseInt(mStr, 10);
     if (h > 21 || (h === 21 && m > 0)) {
-      h = 21;
-      m = 0;
+      return '21:00';
     }
     const hFormatted = h.toString().padStart(2, '0');
     const mFormatted = m.toString().padStart(2, '0');
@@ -77,29 +74,45 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
   const timeOptions = generateTimeOptions();
 
   return (
-    <div className="cs-flex-col cs-mb-4">
-      <label className="cs-label">{label}</label>
-      <div className="cs-flex cs-gap-2">
-        <input 
-          type="date" 
-          value={dateStr}
-          onChange={(e) => setDateStr(e.target.value)}
-          className="cs-input"
-          style={{ flex: 1 }}
-        />
-        <SimpleSelect
-          options={timeOptions}
-          value={startTime}
-          onChange={handleStartTimeChange}
-          style={{ flex: 1 }}
-        />
-        <span style={{ alignSelf: 'center', color: 'var(--color-muted)' }}>-</span>
-        <SimpleSelect
-          options={timeOptions}
-          value={endTime}
-          onChange={setEndTime}
-          style={{ flex: 1 }}
-        />
+    <div className="cs-form-group">
+      <label htmlFor={dateInputId} className="cs-label">
+        {label}
+      </label>
+      <div className="cs-time-picker-grid">
+        <div className="cs-time-picker-date" style={{ width: '100%' }}>
+          <input
+            id={dateInputId}
+            type="date"
+            value={dateStr}
+            onChange={(e) => setDateStr(e.target.value)}
+            className="cs-input"
+            aria-label="选择上课日期"
+            style={{ width: '100%', height: '46px' }}
+          />
+        </div>
+        <div className="cs-time-range-group" style={{ width: '100%' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SimpleSelect
+              options={timeOptions}
+              value={startTime}
+              onChange={handleStartTimeChange}
+              ariaLabel="开始时间"
+              placeholder="开始时间"
+            />
+          </div>
+          <span style={{ color: 'var(--color-ink-3)', fontWeight: 500, padding: '0 4px', userSelect: 'none' }} aria-hidden="true">
+            —
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SimpleSelect
+              options={timeOptions}
+              value={endTime}
+              onChange={setEndTime}
+              ariaLabel="结束时间"
+              placeholder="结束时间"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
