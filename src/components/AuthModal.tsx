@@ -81,13 +81,13 @@ export const AuthModal: React.FC = () => {
                 width: '48px',
                 height: '48px',
                 borderRadius: '12px',
-                backgroundColor: 'var(--color-coral)',
+                backgroundColor: 'var(--color-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#FFFFFF',
                 marginBottom: '24px',
-                boxShadow: '0 4px 12px rgba(217, 93, 79, 0.4)',
+                boxShadow: '0 4px 12px rgba(55, 53, 47, 0.25)',
               }}
             >
               <BookOpen size={24} />
@@ -238,10 +238,11 @@ export const AuthModal: React.FC = () => {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--color-coral)',
+                color: 'var(--color-ink)',
                 fontSize: '13px',
                 fontWeight: 500,
                 cursor: 'pointer',
+                textDecoration: 'underline',
                 padding: '4px',
               }}
             >

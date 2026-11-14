@@ -1,26 +1,26 @@
-/* Design Tokens — Warm paper, ink, coral */
+/* Design Tokens — Original palette: white, warm grey, ink */
 :root {
   color-scheme: light;
 
   /* Colors */
-  --color-bg: #F4F1EA;
-  --color-elevated: #FBF9F4;
-  --color-card: #FFFDF8;
-  --color-ink: #1E1C18;
-  --color-ink-2: #55514A;
-  --color-ink-3: #8A857C;
-  --color-hairline: rgba(30, 28, 24, 0.10);
-  --color-hairline-strong: rgba(30, 28, 24, 0.18);
-  --color-coral: #D95D4F;
-  --color-coral-strong: #B9453A;
-  --color-coral-soft: #F7E2DD;
-  --color-coral-tint: rgba(217, 93, 79, 0.08);
-  --color-success: #2E7D5B;
-  --color-success-soft: rgba(46, 125, 91, 0.12);
-  --color-warning: #A9681F;
-  --color-warning-soft: rgba(169, 104, 31, 0.12);
-  --color-error: #B8433A;
-  --color-error-soft: rgba(184, 67, 58, 0.12);
+  --color-bg: #FFFFFF;
+  --color-elevated: #F7F6F3;
+  --color-card: #FFFFFF;
+  --color-ink: #37352F;
+  --color-ink-2: #9B9A97;
+  --color-ink-3: #9B9A97;
+  --color-hairline: rgba(55, 53, 47, 0.12);
+  --color-hairline-strong: rgba(55, 53, 47, 0.16);
+  --color-coral: #37352F; /* neutral accent (replaces the former coral) */
+  --color-coral-strong: #2F2D28;
+  --color-coral-soft: #F7F6F3;
+  --color-coral-tint: rgba(55, 53, 47, 0.08);
+  --color-success: #0F7B6C;
+  --color-success-soft: rgba(15, 123, 108, 0.12);
+  --color-warning: #D9730D;
+  --color-warning-soft: rgba(217, 115, 13, 0.12);
+  --color-error: #DF5452;
+  --color-error-soft: rgba(223, 84, 82, 0.12);
 
   /* Compatibility aliases for legacy classes */
   --color-primary: var(--color-ink);
@@ -54,10 +54,10 @@
   --radius: var(--radius-control);
 
   /* Shadows */
-  --shadow-card: 0 1px 2px rgba(30, 28, 24, 0.04), 0 10px 30px rgba(30, 28, 24, 0.06);
-  --shadow-card-hover: 0 2px 6px rgba(30, 28, 24, 0.06), 0 16px 36px rgba(30, 28, 24, 0.09);
-  --shadow-modal: 0 20px 48px rgba(30, 28, 24, 0.22), 0 4px 12px rgba(30, 28, 24, 0.08);
-  --shadow-dropdown: 0 12px 32px rgba(30, 28, 24, 0.14), 0 2px 6px rgba(30, 28, 24, 0.06);
+  --shadow-card: 0 1px 2px rgba(55, 53, 47, 0.04), 0 10px 30px rgba(55, 53, 47, 0.06);
+  --shadow-card-hover: 0 2px 6px rgba(55, 53, 47, 0.06), 0 16px 36px rgba(55, 53, 47, 0.09);
+  --shadow-modal: 0 20px 48px rgba(55, 53, 47, 0.22), 0 4px 12px rgba(55, 53, 47, 0.08);
+  --shadow-dropdown: 0 12px 32px rgba(55, 53, 47, 0.14), 0 2px 6px rgba(55, 53, 47, 0.06);
 
   /* Motion Tokens */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -260,7 +260,6 @@ input, textarea, select {
 .cs-card-output {
   background-color: var(--color-card);
   border: 1px solid var(--color-hairline);
-  border-top: 3px solid var(--color-coral);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   display: flex;
@@ -324,7 +323,7 @@ input, textarea, select {
   top: 0;
   z-index: 40;
   height: calc(var(--header-height) + env(safe-area-inset-top));
-  background-color: rgba(251, 249, 244, 0.78);
+  background-color: rgba(247, 246, 243, 0.82);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--color-hairline);
@@ -350,7 +349,7 @@ input, textarea, select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(217, 93, 79, 0.35);
+  box-shadow: 0 2px 6px rgba(55, 53, 47, 0.25);
 }
 
 .cs-brand-title {
@@ -367,7 +366,7 @@ input, textarea, select {
   font-size: 13px;
   font-weight: 500;
   color: var(--color-ink-2);
-  background-color: rgba(30, 28, 24, 0.05);
+  background-color: rgba(55, 53, 47, 0.05);
   border: 1px solid var(--color-hairline);
   padding: 4px 12px;
   border-radius: var(--radius-pill);
@@ -462,7 +461,7 @@ input, textarea, select {
 
 @media (hover: hover) and (pointer: fine) {
   .cs-btn-icon:hover {
-    background-color: rgba(30, 28, 24, 0.06);
+    background-color: rgba(55, 53, 47, 0.06);
     color: var(--color-ink);
   }
 }
@@ -637,7 +636,7 @@ textarea.cs-input {
 .cs-modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(30, 28, 24, 0.45);
+  background-color: rgba(55, 53, 47, 0.4);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 990;
@@ -729,11 +728,11 @@ textarea.cs-input {
     right: 0;
     z-index: 35;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background-color: rgba(251, 249, 244, 0.86);
+    background-color: rgba(247, 246, 243, 0.88);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-top: 1px solid var(--color-hairline);
-    box-shadow: 0 -4px 16px rgba(30, 28, 24, 0.05);
+    box-shadow: 0 -4px 16px rgba(55, 53, 47, 0.05);
   }
 
   .cs-desktop-only-btn {

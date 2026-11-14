@@ -294,7 +294,7 @@ ${dsOut}`;
                 </>
               ) : (
                 <>
-                  <Play size={18} fill="currentColor" color="var(--color-coral)" />
+                  <Play size={18} fill="currentColor" />
                   <span>生成课堂报告</span>
                 </>
               )}
@@ -438,7 +438,7 @@ ${dsOut}`;
             </>
           ) : (
             <>
-              <Play size={18} fill="currentColor" color="var(--color-coral)" />
+              <Play size={18} fill="currentColor" />
               <span>生成课堂报告</span>
             </>
           )}

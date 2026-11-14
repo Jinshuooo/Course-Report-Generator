@@ -99,11 +99,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               target="_blank"
               rel="noreferrer"
               style={{
-                color: 'var(--color-coral)',
+                color: 'var(--color-ink)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '2px',
-                textDecoration: 'none',
+                textDecoration: 'underline',
                 fontWeight: 500,
               }}
             >
