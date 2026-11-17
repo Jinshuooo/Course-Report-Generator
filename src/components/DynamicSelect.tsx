@@ -194,7 +194,10 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
         onClick={toggleDropdown}
         onKeyDown={handleTriggerKeyDown}
       >
-        <span style={{ color: value ? 'var(--color-ink)' : 'var(--color-ink-3)', fontWeight: value ? 500 : 400 }}>
+        <span
+          className="cs-select-value"
+          style={{ color: value ? 'var(--color-ink)' : 'var(--color-ink-3)', fontWeight: value ? 500 : 400 }}
+        >
           {value || placeholder}
         </span>
         <ChevronDown size={18} className={`cs-select-chevron ${isOpen ? 'open' : ''}`} />
@@ -203,8 +206,8 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
       {isOpen && (
         <div className="cs-select-dropdown">
           {/* Add-new Section */}
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-hairline)', backgroundColor: 'var(--color-elevated)' }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="cs-select-add">
+            <div className="cs-select-add-row">
               <input
                 ref={addInputRef}
                 type="text"
@@ -226,7 +229,6 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
                 placeholder="输入新项目并添加..."
                 aria-label={`添加新${label}`}
                 className="cs-input"
-                style={{ height: '44px', fontSize: '16px', padding: '0 12px' }}
                 onClick={(e) => e.stopPropagation()}
               />
               <button
@@ -236,7 +238,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
                   handleAdd();
                 }}
                 className="cs-btn cs-btn-coral"
-                style={{ height: '44px', padding: '0 14px', fontSize: '14px', flexShrink: 0 }}
+                style={{ flexShrink: 0 }}
                 disabled={!inputValue.trim()}
                 title="添加新项"
                 aria-label="添加新项"
@@ -246,7 +248,7 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
               </button>
             </div>
             {errorMsg && (
-              <div role="alert" style={{ color: 'var(--color-error)', fontSize: '12px', marginTop: '6px', paddingLeft: '4px' }}>
+              <div role="alert" className="cs-select-error">
                 {errorMsg}
               </div>
             )}
@@ -258,10 +260,10 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
             role="listbox"
             tabIndex={-1}
             aria-label={label}
-            style={{ maxHeight: '200px', overflowY: 'auto' }}
+            className="cs-select-options"
           >
             {options.length === 0 ? (
-              <div style={{ padding: '20px 14px', textAlign: 'center', color: 'var(--color-ink-3)', fontSize: '14px' }}>
+              <div className="cs-select-empty">
                 暂无预设选项，请在上方添加
               </div>
             ) : (
@@ -281,9 +283,9 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
                     onClick={() => handleSelect(opt)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <div className="cs-select-option-label">
                       {isSelected && <Check size={16} color="var(--color-coral)" style={{ flexShrink: 0 }} />}
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span className="cs-select-option-text">
                         {opt}
                       </span>
                     </div>

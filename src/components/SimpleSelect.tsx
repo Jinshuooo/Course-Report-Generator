@@ -119,7 +119,10 @@ export const SimpleSelect: React.FC<SimpleSelectProps> = ({
         onClick={toggleDropdown}
         onKeyDown={handleKeyDown}
       >
-        <span style={{ color: value ? 'var(--color-ink)' : 'var(--color-ink-3)', fontWeight: value ? 500 : 400 }}>
+        <span
+          className="cs-select-value"
+          style={{ color: value ? 'var(--color-ink)' : 'var(--color-ink-3)', fontWeight: value ? 500 : 400 }}
+        >
           {value || placeholder}
         </span>
         <ChevronDown size={18} className={`cs-select-chevron ${isOpen ? 'open' : ''}`} />

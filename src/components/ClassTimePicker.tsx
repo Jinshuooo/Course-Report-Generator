@@ -79,7 +79,7 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
         {label}
       </label>
       <div className="cs-time-picker-grid">
-        <div className="cs-time-picker-date" style={{ width: '100%' }}>
+        <div className="cs-time-picker-date">
           <input
             id={dateInputId}
             type="date"
@@ -87,11 +87,10 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
             onChange={(e) => setDateStr(e.target.value)}
             className="cs-input"
             aria-label="选择上课日期"
-            style={{ width: '100%', height: '46px' }}
           />
         </div>
-        <div className="cs-time-range-group" style={{ width: '100%' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="cs-time-range-group">
+          <div className="cs-time-select">
             <SimpleSelect
               options={timeOptions}
               value={startTime}
@@ -100,10 +99,10 @@ export const ClassTimePicker: React.FC<ClassTimePickerProps> = ({
               placeholder="开始时间"
             />
           </div>
-          <span style={{ color: 'var(--color-ink-3)', fontWeight: 500, padding: '0 4px', userSelect: 'none' }} aria-hidden="true">
+          <span className="cs-time-separator" aria-hidden="true">
             —
           </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="cs-time-select">
             <SimpleSelect
               options={timeOptions}
               value={endTime}

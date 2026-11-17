@@ -1,29 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { Modal } from './ui/Modal';
-import { Key, Save, Eye, EyeOff, Check, ExternalLink } from 'lucide-react';
+import { Modal, type ModalHandle } from './ui/Modal';
+import { Key, Check, Eye, EyeOff, ExternalLink } from 'lucide-react';
 
 export interface SettingsModalProps {
   onClose: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
-  const { apiKey, setApiKey, isGuest } = useAppContext();
+  const { apiKey, setApiKey, isGuest, user } = useAppContext();
   const [localKey, setLocalKey] = useState(apiKey);
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const modalRef = useRef<ModalHandle | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
   const isForced = !apiKey;
+
+  useEffect(
+    () => () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    },
+    []
+  );
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!localKey.trim()) return;
-    setApiKey(localKey.trim());
+    const key = localKey.trim();
+    if (!key || saved) return;
+    setApiKey(key);
     setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      onClose();
-    }, 900);
+    saveTimerRef.current = window.setTimeout(() => {
+      modalRef.current?.close();
+    }, 700);
   };
 
   const titleContent = (
@@ -38,17 +47,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexShrink: 0,
         }}
       >
         <Key size={18} />
       </div>
-      <span>API 配置</span>
+      <span>设置</span>
     </div>
   );
 
-  const descriptionContent = isGuest
-    ? '游客模式 · Key 仅保存在本地浏览器'
-    : '已登录 · Key 同步至您的云端账户';
+  const canSave = Boolean(localKey.trim()) && !saved;
 
   return (
     <Modal
@@ -56,86 +64,113 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
       onClose={onClose}
       dismissible={!isForced}
       title={titleContent}
-      description={descriptionContent}
-      maxWidth="460px"
-    >
-      <form onSubmit={handleSave}>
-        <div className="cs-form-group">
-          <label htmlFor="deepseek-api-key" className="cs-label">
-            DeepSeek API Key
-          </label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input
-              id="deepseek-api-key"
-              type={showKey ? 'text' : 'password'}
-              value={localKey}
-              onChange={(e) => setLocalKey(e.target.value)}
-              placeholder="sk-..."
-              required
-              className="cs-input"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '16px',
-                paddingRight: '48px',
-              }}
-              autoComplete="off"
-              spellCheck={false}
-            />
+      description={isForced ? '配置 API Key 后即可开始使用' : undefined}
+      maxWidth="560px"
+      apiRef={modalRef}
+      footer={
+        <>
+          {!isForced && (
             <button
               type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="cs-btn-icon"
-              style={{ position: 'absolute', right: '4px', height: '38px', width: '38px' }}
-              title={showKey ? '隐藏密钥' : '显示密钥'}
-              aria-label={showKey ? '隐藏密钥' : '显示密钥'}
+              onClick={() => modalRef.current?.close()}
+              className="cs-btn cs-btn-secondary"
             >
-              {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+              取消
             </button>
-          </div>
-          <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--color-ink-3)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>前往</span>
-            <a
-              href="https://platform.deepseek.com/"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                color: 'var(--color-ink)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '2px',
-                textDecoration: 'underline',
-                fontWeight: 500,
-              }}
-            >
-              DeepSeek 开放平台
-              <ExternalLink size={12} />
-            </a>
-            <span>获取 Key</span>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={!localKey.trim() || saved}
-          className="cs-btn"
-          style={{
-            width: '100%',
-            marginTop: '8px',
-            backgroundColor: saved ? 'var(--color-success)' : undefined,
-          }}
-        >
-          {saved ? (
-            <>
-              <Check size={18} />
-              <span>已保存</span>
-            </>
-          ) : (
-            <>
-              <Save size={18} />
-              <span>保存设置</span>
-            </>
           )}
-        </button>
+          <button
+            type="submit"
+            form="settings-form"
+            disabled={!canSave}
+            className={`cs-btn${saved ? ' is-saved' : ''}`}
+          >
+            {saved ? (
+              <>
+                <Check size={18} />
+                <span>已保存</span>
+              </>
+            ) : (
+              <span>保存</span>
+            )}
+          </button>
+        </>
+      }
+    >
+      <form id="settings-form" onSubmit={handleSave}>
+        <div className="cs-settings">
+          <section
+            className="cs-settings-group cs-stagger-item"
+            style={{ '--stagger': 0 } as React.CSSProperties}
+          >
+            <h3 className="cs-settings-group-title">模型服务</h3>
+
+            <div className="cs-field-row">
+              <label htmlFor="deepseek-api-key" className="cs-field-label">
+                API Key
+              </label>
+              <div className="cs-field-control">
+                <div className="cs-input-affix">
+                  <input
+                    id="deepseek-api-key"
+                    type={showKey ? 'text' : 'password'}
+                    value={localKey}
+                    onChange={(e) => setLocalKey(e.target.value)}
+                    placeholder="sk-..."
+                    required
+                    className="cs-input cs-input-mono"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="cs-btn-icon cs-input-affix-btn"
+                    title={showKey ? '隐藏密钥' : '显示密钥'}
+                    aria-label={showKey ? '隐藏密钥' : '显示密钥'}
+                  >
+                    {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <div className="cs-field-hint">
+                  <span>前往</span>
+                  <a
+                    href="https://platform.deepseek.com/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="cs-field-link"
+                  >
+                    DeepSeek 开放平台
+                    <ExternalLink size={12} />
+                  </a>
+                  <span>获取</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            className="cs-settings-group cs-stagger-item"
+            style={{ '--stagger': 1 } as React.CSSProperties}
+          >
+            <h3 className="cs-settings-group-title">账户与存储</h3>
+
+            <div className="cs-info-list">
+              <div className="cs-info-row">
+                <span className="cs-info-key">身份</span>
+                <span className="cs-info-value">
+                  {isGuest ? '游客模式' : user?.email ?? '未登录'}
+                </span>
+              </div>
+              <div className="cs-info-row">
+                <span className="cs-info-key">Key 存储</span>
+                <span className="cs-info-value">
+                  {isGuest ? '仅本地浏览器' : '云端账户'}
+                </span>
+              </div>
+            </div>
+          </section>
+        </div>
       </form>
     </Modal>
   );

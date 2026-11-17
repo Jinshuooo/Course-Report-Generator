@@ -13,20 +13,9 @@ const MainApp: React.FC = () => {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'var(--color-bg)',
-          color: 'var(--color-ink-2)',
-          gap: '12px',
-        }}
-      >
-        <Loader2 size={32} className="cs-spinning" style={{ color: 'var(--color-coral)' }} />
-        <span style={{ fontSize: '14px', fontWeight: 500 }}>正在加载系统...</span>
+      <div className="cs-loading-screen">
+        <Loader2 size={32} className="cs-spinning" aria-hidden="true" />
+        <span className="cs-loading-label">正在加载系统…</span>
       </div>
     );
   }
@@ -43,9 +32,9 @@ const MainApp: React.FC = () => {
     <div className="cs-app-shell">
       {/* Sticky Translucent Header */}
       <header className="cs-header-shell">
-        <div className="cs-container cs-header-inner">
+        <div className="cs-container cs-header-inner cs-header-enter">
           {/* Brand mark & title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="cs-brand">
             <div className="cs-brand-mark" aria-hidden="true">
               <BookOpen size={20} />
             </div>
@@ -53,8 +42,11 @@ const MainApp: React.FC = () => {
           </div>
 
           {/* Right Action Group */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <div className="cs-status-pill" title={isGuest ? '游客模式 (数据仅本地保存)' : `已登录: ${user?.email}`}>
+          <div className="cs-header-actions">
+            <div
+              className="cs-status-pill"
+              title={isGuest ? '游客模式 (数据仅本地保存)' : `已登录: ${user?.email}`}
+            >
               {isGuest ? '游客模式' : user?.email}
             </div>
 
@@ -92,8 +84,10 @@ const MainApp: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="cs-container" style={{ flex: 1, paddingTop: '24px' }}>
-        <ReportGenerator />
+      <main className="cs-main">
+        <div className="cs-container">
+          <ReportGenerator />
+        </div>
       </main>
 
       {/* Modals */}

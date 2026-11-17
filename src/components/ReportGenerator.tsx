@@ -14,6 +14,83 @@ const getDefaultSendTime = (): string => {
   return '晚上';
 };
 
+interface ReportMeta {
+  label: string;
+  value: string;
+}
+
+type ReportBlock =
+  | { kind: 'heading'; text: string }
+  | { kind: 'item'; number: string; text: string }
+  | { kind: 'paragraph'; text: string };
+
+interface ParsedReport {
+  greeting: string;
+  intro: string;
+  meta: ReportMeta[];
+  blocks: ReportBlock[];
+}
+
+const META_LINE = /^(时间|科目|教师)[：:]\s*(.*)$/;
+
+/**
+ * Turns the plain-text report into display blocks without changing the
+ * clipboard payload. getFinalReport() stays the single source of truth.
+ */
+const parseReportForDisplay = (report: string): ParsedReport => {
+  const lines = report.split('\n');
+  const metaStart = lines.findIndex((line) => META_LINE.test(line.trim()));
+
+  const meta: ReportMeta[] = [];
+  let metaEnd = metaStart;
+
+  if (metaStart !== -1) {
+    let index = metaStart;
+    while (index < lines.length) {
+      const trimmed = lines[index].trim();
+      const match = trimmed.match(META_LINE);
+      if (match) {
+        meta.push({ label: match[1], value: match[2] });
+      } else if (trimmed !== '') {
+        break;
+      }
+      metaEnd = index;
+      index += 1;
+    }
+  }
+
+  const headEnd = metaStart === -1 ? Math.min(2, lines.length) : metaStart;
+  const headLines = lines.slice(0, headEnd);
+  const bodyLines = metaStart === -1 ? lines.slice(headEnd) : lines.slice(metaEnd + 1);
+
+  const blocks: ReportBlock[] = [];
+
+  bodyLines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    const itemMatch = line.match(/^(\d+)[.、]\s*(.*)$/);
+    if (itemMatch) {
+      blocks.push({ kind: 'item', number: itemMatch[1], text: itemMatch[2] });
+      return;
+    }
+
+    if (line.startsWith('📕') || /^【[^】]+】/.test(line)) {
+      blocks.push({ kind: 'heading', text: line });
+      return;
+    }
+
+    blocks.push({ kind: 'paragraph', text: line });
+  });
+
+  return {
+    greeting: headLines[0] ?? '',
+    intro: headLines.slice(1).join(' ').trim(),
+    meta,
+    blocks,
+  };
+};
+
 export const ReportGenerator: React.FC = () => {
   const { apiKey, user, isGuest } = useAppContext();
 
@@ -146,34 +223,26 @@ ${dsOut}`;
     }
   };
 
+  const parsedReport = deepseekOutput ? parseReportForDisplay(getFinalReport()) : null;
+
   return (
     <>
       <div className="cs-workspace-grid cs-main-pad-bottom">
         {/* Left Column (7 cols): Input Form */}
-        <div className="cs-col-form cs-card cs-rise-in">
+        <section
+          className="cs-col-form cs-card cs-enter cs-enter-delay-1"
+          aria-labelledby="form-card-title"
+        >
           {/* Card Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '16px', marginBottom: '20px', borderBottom: '1px solid var(--color-hairline)' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--color-coral-soft)',
-                color: 'var(--color-coral)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ClipboardList size={18} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--color-ink)' }}>填写课程信息</h2>
-            </div>
+          <div className="cs-card-head">
+            <span className="cs-icon-tile" aria-hidden="true">
+              <ClipboardList size={20} />
+            </span>
+            <h2 id="form-card-title" className="cs-section-title">填写课程信息</h2>
           </div>
 
           {/* Form Body */}
-          <div>
+          <div className="cs-form-stagger">
             {/* Row 1: Student name & send time */}
             <div className="cs-form-row-2">
               <DynamicSelect
@@ -232,7 +301,7 @@ ${dsOut}`;
             </div>
 
             {/* Row 5: Content Summary */}
-            <div className="cs-form-group" style={{ marginBottom: '8px' }}>
+            <div className="cs-form-group">
               <label htmlFor="content-input" className="cs-label">
                 上课内容摘要
               </label>
@@ -249,43 +318,20 @@ ${dsOut}`;
 
           {/* Inline Error (Desktop only) */}
           {error && (
-            <div
-              role="alert"
-              className="cs-desktop-only-error"
-              style={{
-                marginTop: '16px',
-                padding: '12px 14px',
-                backgroundColor: 'var(--color-error-soft)',
-                border: '1px solid rgba(184, 67, 58, 0.2)',
-                borderRadius: 'var(--radius-control)',
-                color: 'var(--color-error)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px',
-              }}
-            >
-              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <div role="alert" className="cs-alert cs-alert-error cs-form-error cs-desktop-only-error">
+              <AlertCircle size={16} className="cs-alert-icon" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Desktop Generate Button */}
-          <div
-            className="cs-desktop-only-btn"
-            style={{
-              paddingTop: '20px',
-              marginTop: '16px',
-              borderTop: '1px solid var(--color-hairline)',
-            }}
-          >
+          <div className="cs-desktop-only-btn cs-form-actions">
             <button
               type="button"
               onClick={handleGenerate}
               disabled={isGenerating || !contentInput.trim()}
               aria-busy={isGenerating}
-              className="cs-btn"
-              style={{ width: '100%', height: '48px' }}
+              className="cs-btn cs-btn-block"
             >
               {isGenerating ? (
                 <>
@@ -300,63 +346,38 @@ ${dsOut}`;
               )}
             </button>
           </div>
-        </div>
+        </section>
 
         {/* Right Column (5 cols): Sticky Paper Output */}
-        <div
+        <section
           ref={outputSectionRef}
-          className="cs-col-output cs-card-output cs-rise-in-delay-1"
-          style={{ scrollMarginTop: 'calc(var(--header-height) + 16px)' }}
+          className="cs-col-output cs-card-output cs-enter cs-enter-delay-2"
+          aria-labelledby="output-card-title"
         >
           {/* Output Header */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--color-hairline)',
-              backgroundColor: 'var(--color-card)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '7px',
-                  backgroundColor: 'var(--color-coral-soft)',
-                  color: 'var(--color-coral)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+          <div className="cs-output-head">
+            <div className="cs-output-heading">
+              <span className="cs-icon-tile cs-icon-tile-sm" aria-hidden="true">
                 <Sparkles size={16} />
-              </div>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-ink)' }}>课堂反馈</h2>
+              </span>
+              <h2 id="output-card-title" className="cs-section-title">课堂反馈</h2>
             </div>
 
             {deepseekOutput && !isGenerating && (
               <button
                 type="button"
                 onClick={handleCopy}
-                className="cs-btn cs-btn-secondary"
+                className={`cs-btn cs-btn-secondary cs-btn-sm ${copied ? 'cs-btn-success' : ''}`}
                 aria-label={copied ? '已复制到剪贴板' : '复制反馈文本'}
-                style={{
-                  height: '42px',
-                  padding: '0 14px',
-                  fontSize: '14px',
-                }}
               >
                 {copied ? (
                   <>
-                    <Check size={15} color="var(--color-success)" />
-                    <span style={{ color: 'var(--color-success)', fontWeight: 600 }} aria-live="polite">已复制</span>
+                    <Check size={16} className="cs-pop" />
+                    <span aria-live="polite">已复制</span>
                   </>
                 ) : (
                   <>
-                    <Copy size={15} />
+                    <Copy size={16} />
                     <span>复制文本</span>
                   </>
                 )}
@@ -365,61 +386,92 @@ ${dsOut}`;
           </div>
 
           {/* Report Paper Surface */}
-          <div className="cs-output-content-wrap">
-            {deepseekOutput ? (
-              <div className="cs-report-serif">
-                {getFinalReport()}
-                {isGenerating && <span className="cs-caret" aria-hidden="true" />}
-              </div>
+          <div className="cs-output-content-wrap cs-output-paper">
+            {parsedReport ? (
+              <article className="cs-report cs-state-in" aria-busy={isGenerating}>
+                <header className="cs-report-letterhead">
+                  <p className="cs-report-greeting">{parsedReport.greeting}</p>
+                  {parsedReport.intro && (
+                    <p className="cs-report-intro">{parsedReport.intro}</p>
+                  )}
+                  {parsedReport.meta.length > 0 && (
+                    <dl className="cs-report-meta">
+                      {parsedReport.meta.map((item) => (
+                        <div className="cs-report-meta-row" key={item.label}>
+                          <dt>{item.label}</dt>
+                          <dd>{item.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </header>
+
+                <div className="cs-report-body">
+                  {parsedReport.blocks.length === 0 && isGenerating && (
+                    <p className="cs-report-paragraph">
+                      <span className="cs-caret" aria-hidden="true" />
+                    </p>
+                  )}
+                  {parsedReport.blocks.map((block, index) => {
+                    const caret =
+                      isGenerating && index === parsedReport.blocks.length - 1 ? (
+                        <span className="cs-caret" aria-hidden="true" />
+                      ) : null;
+
+                    if (block.kind === 'heading') {
+                      return (
+                        <h3 className="cs-report-heading" key={index}>
+                          {block.text}
+                          {caret}
+                        </h3>
+                      );
+                    }
+
+                    if (block.kind === 'item') {
+                      return (
+                        <p className="cs-report-item" key={index}>
+                          <span className="cs-report-num">{block.number}.</span>
+                          <span className="cs-report-text">
+                            {block.text}
+                            {caret}
+                          </span>
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <p className="cs-report-paragraph" key={index}>
+                        <span className="cs-report-text">
+                          {block.text}
+                          {caret}
+                        </span>
+                      </p>
+                    );
+                  })}
+                </div>
+              </article>
             ) : isGenerating ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '220px', color: 'var(--color-ink-2)' }}>
-                <Loader2 size={28} className="cs-spinning" style={{ color: 'var(--color-coral)', marginBottom: '12px' }} />
-                <p style={{ fontSize: '14px', margin: 0 }}>正在提炼要点并撰写反馈...</p>
+              <div className="cs-empty-state cs-state-in">
+                <Loader2 size={28} className="cs-spinning" aria-hidden="true" />
+                <p>正在提炼要点并撰写反馈...</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '220px', textAlign: 'center', color: 'var(--color-ink-3)' }}>
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--color-coral-soft)',
-                    color: 'var(--color-coral)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
+              <div className="cs-empty-state cs-state-in">
+                <span className="cs-empty-icon" aria-hidden="true">
                   <FileText size={22} />
-                </div>
-                <p style={{ fontSize: '14px', margin: 0, color: 'var(--color-ink-2)' }}>
-                  生成的反馈报告将呈现在这里
-                </p>
+                </span>
+                <p>生成的反馈报告将呈现在这里</p>
               </div>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* Mobile Sticky Bottom Action Bar */}
       <div className="cs-mobile-action-bar">
         {error && (
-          <div
-            role="alert"
-            style={{
-              marginBottom: '10px',
-              padding: '8px 12px',
-              backgroundColor: 'var(--color-error-soft)',
-              borderRadius: 'var(--radius-control)',
-              color: 'var(--color-error)',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+          <div role="alert" className="cs-alert cs-alert-error cs-mobile-error">
+            <AlertCircle size={14} className="cs-alert-icon" />
             <span>{error}</span>
           </div>
         )}
@@ -428,8 +480,7 @@ ${dsOut}`;
           onClick={handleGenerate}
           disabled={isGenerating || !contentInput.trim()}
           aria-busy={isGenerating}
-          className="cs-btn"
-          style={{ width: '100%', height: '48px' }}
+          className="cs-btn cs-btn-block"
         >
           {isGenerating ? (
             <>
