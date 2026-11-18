@@ -243,7 +243,8 @@ ${dsOut}`;
           addUsageRecord(promptTokens, completionTokens, user?.id, isGuest);
         },
         studentName,
-        reportMode
+        reportMode,
+        { subject, classTime, teacher }
       );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '生成过程中发生错误');
