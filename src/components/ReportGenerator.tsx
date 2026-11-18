@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { streamDeepSeek } from '../lib/deepseek';
+import { streamDeepSeek, type ReportMode } from '../lib/deepseek';
 import { Play, Copy, Check, AlertCircle, ClipboardList, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { DynamicSelect } from './DynamicSelect';
 import { SimpleSelect } from './SimpleSelect';
@@ -37,8 +37,21 @@ const META_LINE = /^(时间|科目|教师)[：:]\s*(.*)$/;
  * Turns the plain-text report into display blocks without changing the
  * clipboard payload. getFinalReport() stays the single source of truth.
  */
-const parseReportForDisplay = (report: string): ParsedReport => {
+const parseReportForDisplay = (report: string, mode: ReportMode): ParsedReport => {
   const lines = report.split('\n');
+
+  if (mode === 'plain') {
+    const nonEmpty = lines.map((line) => line.trim()).filter(Boolean);
+    return {
+      greeting: nonEmpty[0] ?? '',
+      intro: '',
+      meta: [],
+      blocks: nonEmpty
+        .slice(1)
+        .map((text): ReportBlock => ({ kind: 'paragraph', text })),
+    };
+  }
+
   const metaStart = lines.findIndex((line) => META_LINE.test(line.trim()));
 
   const meta: ReportMeta[] = [];
@@ -95,6 +108,9 @@ export const ReportGenerator: React.FC = () => {
   const { apiKey, user, isGuest } = useAppContext();
 
   // Form State
+  const [reportMode, setReportMode] = useState<ReportMode>(() =>
+    localStorage.getItem('cs_last_mode') === 'plain' ? 'plain' : 'template'
+  );
   const [studentName, setStudentName] = useState(() => localStorage.getItem('cs_last_student') || '');
   const [sendTime, setSendTime] = useState(getDefaultSendTime);
   const [classTime, setClassTime] = useState('');
@@ -126,8 +142,26 @@ export const ReportGenerator: React.FC = () => {
 
   const outputSectionRef = useRef<HTMLDivElement>(null);
 
+  const handleModeChange = (mode: ReportMode) => {
+    if (mode === reportMode) return;
+    setReportMode(mode);
+    localStorage.setItem('cs_last_mode', mode);
+    // The rendered output belongs to the mode it was generated in.
+    setDeepseekOutput('');
+    setError('');
+    setCopied(false);
+  };
+
   const getFinalReport = () => {
     if (!deepseekOutput) return '';
+
+    if (reportMode === 'plain') {
+      const dsOut = deepseekOutput.trim();
+      if (!dsOut) return '';
+      return homework.trim()
+        ? `${dsOut}\n\n本次布置的作业：${homework.trim()}`
+        : dsOut;
+    }
 
     let dsOut = deepseekOutput.trim();
 
@@ -169,13 +203,20 @@ ${dsOut}`;
       setError('请先在顶部设置中配置 DeepSeek API Key');
       return;
     }
-    if (!studentName || !subject || !teacher || !classTime) {
-      setError('请完整填写学生姓名、上课时间、科目及老师称呼');
-      return;
-    }
-    if (!contentInput.trim()) {
-      setError('请提供本次课程的内容摘要');
-      return;
+    if (reportMode === 'plain') {
+      if (!studentName || !contentInput.trim()) {
+        setError('请填写学生姓名及上课内容摘要');
+        return;
+      }
+    } else {
+      if (!studentName || !subject || !teacher || !classTime) {
+        setError('请完整填写学生姓名、上课时间、科目及老师称呼');
+        return;
+      }
+      if (!contentInput.trim()) {
+        setError('请提供本次课程的内容摘要');
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -201,7 +242,8 @@ ${dsOut}`;
         (promptTokens, completionTokens) => {
           addUsageRecord(promptTokens, completionTokens, user?.id, isGuest);
         },
-        studentName
+        studentName,
+        reportMode
       );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '生成过程中发生错误');
@@ -223,7 +265,9 @@ ${dsOut}`;
     }
   };
 
-  const parsedReport = deepseekOutput ? parseReportForDisplay(getFinalReport()) : null;
+  const parsedReport = deepseekOutput
+    ? parseReportForDisplay(getFinalReport(), reportMode)
+    : null;
 
   return (
     <>
@@ -243,6 +287,37 @@ ${dsOut}`;
 
           {/* Form Body */}
           <div className="cs-form-stagger">
+            {/* Row 0: Report mode */}
+            <div className="cs-mode-field">
+              <div
+                className="cs-mode-switch"
+                role="group"
+                aria-label="反馈模式"
+              >
+                <button
+                  type="button"
+                  className="cs-mode-option"
+                  aria-pressed={reportMode === 'template'}
+                  disabled={isGenerating}
+                  onClick={() => handleModeChange('template')}
+                >
+                  模板反馈
+                </button>
+                <button
+                  type="button"
+                  className="cs-mode-option"
+                  aria-pressed={reportMode === 'plain'}
+                  disabled={isGenerating}
+                  onClick={() => handleModeChange('plain')}
+                >
+                  普通反馈
+                </button>
+              </div>
+              <p className="cs-mode-hint">
+                模板反馈：分点课后反馈；普通反馈：像微信消息，按课堂顺序叙述
+              </p>
+            </div>
+
             {/* Row 1: Student name & send time */}
             <div className="cs-form-row-2">
               <DynamicSelect
