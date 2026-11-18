@@ -25,6 +25,12 @@
   --color-error: #DF5452;
   --color-error-soft: rgba(223, 84, 82, 0.12);
 
+  /* Solid surfaces (主按钮 / 品牌标记 / 提交按钮)：深色下整体反相 */
+  --color-solid: #37352F;
+  --color-solid-hover: #2D2A24;
+  --color-on-solid: #FFFFFF;
+  --color-on-success: #FFFFFF;
+
   /* Compatibility aliases for legacy classes */
   --color-primary: var(--color-ink);
   --color-secondary: var(--color-ink-2);
@@ -324,8 +330,8 @@ input, textarea, select {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-control);
-  background-color: var(--color-coral);
-  color: #FFFFFF;
+  background-color: var(--color-solid);
+  color: var(--color-on-solid);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,8 +391,8 @@ input, textarea, select {
   gap: var(--space-2);
   height: var(--control-height);
   padding-inline: var(--space-4);
-  background-color: var(--color-ink);
-  color: #FFFFFF;
+  background-color: var(--color-solid);
+  color: var(--color-on-solid);
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   font-size: var(--fs-body);
@@ -406,7 +412,7 @@ input, textarea, select {
 
 @media (hover: hover) and (pointer: fine) {
   .cs-btn:hover:not(:disabled) {
-    background-color: #2D2A24;
+    background-color: var(--color-solid-hover);
     box-shadow: var(--shadow-action);
     transform: translateY(-1px);
   }
@@ -444,13 +450,13 @@ input, textarea, select {
 }
 
 .cs-btn-coral {
-  background-color: var(--color-coral);
-  color: #FFFFFF;
+  background-color: var(--color-solid);
+  color: var(--color-on-solid);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .cs-btn-coral:hover:not(:disabled) {
-    background-color: var(--color-coral-strong);
+    background-color: var(--color-solid-hover);
   }
 }
 
@@ -1462,8 +1468,8 @@ textarea.cs-input {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background-color: var(--color-ink);
-  color: #FFFFFF;
+  background-color: var(--color-solid);
+  color: var(--color-on-solid);
   box-shadow: 0 2px 6px rgba(55, 53, 47, 0.18);
 }
 
@@ -1534,8 +1540,8 @@ textarea.cs-input {
 }
 
 .cs-auth-submit.is-loading:disabled {
-  background-color: var(--color-ink);
-  color: #FFFFFF;
+  background-color: var(--color-solid);
+  color: var(--color-on-solid);
   opacity: 0.72;
 }
 
@@ -1896,7 +1902,7 @@ textarea.cs-input {
 .cs-btn.is-saved,
 .cs-btn.is-saved:disabled {
   background-color: var(--color-success);
-  color: #FFFFFF;
+  color: var(--color-on-success);
   opacity: 1;
 }
 
@@ -2091,4 +2097,125 @@ textarea.cs-input {
 
 .cs-report-paragraph {
   margin: 0;
+}
+
+/* ==========================================================================
+   Dark theme
+   data-theme 由 index.html 的内联脚本在首帧前写入（跟随系统时也会被解析成
+   light / dark），因此这里只需要处理 dark 一种情况。
+
+   下面第二段的选择器覆盖，对应的是浅色层里写死的 rgba/#FFFFFF。改动那些
+   浅色规则时，记得同步这一层。
+   ========================================================================== */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #121211;
+  --color-elevated: #1A1A18;
+  --color-card: #171716;
+  --color-ink: #EDECE9;
+  --color-ink-2: #A5A49F;
+  --color-ink-3: #8A8983;
+  --color-hairline: rgba(255, 255, 255, 0.10);
+  --color-hairline-strong: rgba(255, 255, 255, 0.18);
+
+  /* 中性强调色：深色下反相，用作图标与文字时仍然是浅色 */
+  --color-coral: #E9E8E3;
+  --color-coral-strong: #FFFFFF;
+  --color-coral-soft: #1F1F1D;
+  --color-coral-tint: rgba(255, 255, 255, 0.08);
+
+  /* 状态色提亮，保证深底可读 */
+  --color-success: #4FC7AE;
+  --color-success-soft: rgba(79, 199, 174, 0.14);
+  --color-warning: #E8A33F;
+  --color-warning-soft: rgba(232, 163, 63, 0.14);
+  --color-error: #F07A78;
+  --color-error-soft: rgba(240, 122, 120, 0.14);
+
+  /* 实心面反相成浅底深字 */
+  --color-solid: #EDECE9;
+  --color-solid-hover: #FFFFFF;
+  --color-on-solid: #121211;
+  --color-on-success: #121211;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+
+  /* 主题切换的底色过渡 */
+  --theme-dur: 180ms;
+}
+
+/* 毛玻璃层与浅色填充 */
+:root[data-theme='dark'] .cs-header-shell {
+  background-color: rgba(18, 18, 17, 0.78);
+}
+
+:root[data-theme='dark'] .cs-mobile-action-bar {
+  background-color: rgba(18, 18, 17, 0.88);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='dark'] .cs-status-pill {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+:root[data-theme='dark'] .cs-btn-icon:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+:root[data-theme='dark'] .cs-auth-switch:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme='dark'] .cs-mode-option[aria-pressed='true'] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme='dark'] .cs-select-delete-btn:hover {
+  background-color: rgba(240, 122, 120, 0.12);
+}
+
+:root[data-theme='dark'] .cs-alert-error {
+  border-color: rgba(240, 122, 120, 0.3);
+}
+
+:root[data-theme='dark'] .cs-alert-success {
+  border-color: rgba(79, 199, 174, 0.3);
+}
+
+:root[data-theme='dark'] .cs-btn-success:hover:not(:disabled) {
+  border-color: rgba(79, 199, 174, 0.45);
+}
+
+:root[data-theme='dark'] .cs-btn-success {
+  border-color: rgba(79, 199, 174, 0.32);
+}
+
+:root[data-theme='dark'] .cs-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.62);
+}
+
+:root[data-theme='dark'] .cs-brand-mark {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme='dark'] .cs-output-paper {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+:root[data-theme='dark'] .cs-output-paper::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+:root[data-theme='dark'] .cs-output-paper::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.26);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .cs-app-shell {
+    transition:
+      background-color var(--theme-dur, 180ms) ease,
+      color var(--theme-dur, 180ms) ease;
+  }
 }

@@ -4,12 +4,20 @@ import { AuthModal } from './components/AuthModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ReportGenerator } from './components/ReportGenerator';
 import { ApiUsageDashboard } from './components/ApiUsageDashboard';
-import { BookOpen, Settings, LogOut, Activity, Loader2 } from 'lucide-react';
+import { BookOpen, Settings, LogOut, Activity, Loader2, Monitor, Sun, Moon } from 'lucide-react';
+import { THEME_LABEL, nextThemeMode, useTheme } from './lib/theme';
+
+const THEME_ICON = {
+  system: Monitor,
+  light: Sun,
+  dark: Moon,
+} as const;
 
 const MainApp: React.FC = () => {
   const { user, isGuest, loading, logout, apiKey } = useAppContext();
   const [showSettings, setShowSettings] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
+  const { mode: themeMode, cycle: cycleTheme } = useTheme();
 
   if (loading) {
     return (
@@ -27,6 +35,9 @@ const MainApp: React.FC = () => {
 
   // If no API key configured, force settings modal
   const needsConfig = !apiKey;
+
+  const ThemeIcon = THEME_ICON[themeMode];
+  const nextThemeLabel = THEME_LABEL[nextThemeMode(themeMode)];
 
   return (
     <div className="cs-app-shell">
@@ -49,6 +60,16 @@ const MainApp: React.FC = () => {
             >
               {isGuest ? '游客模式' : user?.email}
             </div>
+
+            <button
+              type="button"
+              onClick={cycleTheme}
+              className="cs-btn-icon"
+              title={`主题：${THEME_LABEL[themeMode]}（点击切换为${nextThemeLabel}）`}
+              aria-label={`主题：${THEME_LABEL[themeMode]}，点击切换为${nextThemeLabel}`}
+            >
+              <ThemeIcon size={20} />
+            </button>
 
             <button
               type="button"

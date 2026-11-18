@@ -4,7 +4,23 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/papyrus.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#F7F6F3" />
+    <meta name="theme-color" id="theme-color-meta" content="#F7F6F3" />
+    <script>
+      // 首帧前定主题，避免深色模式下的白闪
+      (function () {
+        try {
+          var mode = localStorage.getItem('cs_theme') || 'system';
+          var dark =
+            mode === 'dark' ||
+            (mode !== 'light' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          var meta = document.getElementById('theme-color-meta');
+          if (meta) meta.setAttribute('content', dark ? '#121211' : '#F7F6F3');
+        } catch (e) {}
+      })();
+    </script>
     <title>课堂反馈系统</title>
   </head>
   <body>
