@@ -770,6 +770,15 @@ textarea.cs-input {
   animation: cs-pop-in var(--dur-dropdown) var(--ease-out) forwards;
 }
 
+/* 面板通过 portal 挂到 body 并改为 fixed 定位，避免被后续字段或卡片压住 */
+.cs-select-dropdown.is-fixed {
+  position: fixed;
+  top: auto;
+  left: auto;
+  right: auto;
+  z-index: 200;
+}
+
 @keyframes cs-pop-in {
   from {
     opacity: 0;

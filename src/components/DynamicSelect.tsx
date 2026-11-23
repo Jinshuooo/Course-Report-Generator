@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAppContext } from '../contexts/AppContext';
@@ -26,8 +27,16 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [activeIndex, setActiveIndex] = useState<number>(-1);
 
+  const [menuPos, setMenuPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
   const generatedId = useId();
   const selectId = id || generatedId;
@@ -73,17 +82,57 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      // 下拉面板通过 portal 挂到 body，不在 container 内
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 面板 fixed 定位，跟随滚动与窗口变化重算
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const reposition = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const top = rect.bottom + 8;
+      setMenuPos({
+        top,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: Math.max(160, window.innerHeight - top - 12),
+      });
+    };
+
+    reposition();
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [isOpen]);
+
   const openDropdown = () => {
     const idx = options.indexOf(value);
     setActiveIndex(idx >= 0 ? idx : 0);
+
+    const trigger = triggerRef.current;
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      const top = rect.bottom + 8;
+      setMenuPos({
+        top,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: Math.max(160, window.innerHeight - top - 12),
+      });
+    }
     setIsOpen(true);
   };
 
@@ -203,8 +252,17 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
         <ChevronDown size={18} className={`cs-select-chevron ${isOpen ? 'open' : ''}`} />
       </button>
 
-      {isOpen && (
-        <div className="cs-select-dropdown">
+      {isOpen && menuPos && createPortal(
+        <div
+          ref={menuRef}
+          className="cs-select-dropdown is-fixed"
+          style={{
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            maxHeight: menuPos.maxHeight,
+          }}
+        >
           {/* Add-new Section */}
           <div className="cs-select-add">
             <div className="cs-select-add-row">
@@ -303,7 +361,8 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
               })
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
