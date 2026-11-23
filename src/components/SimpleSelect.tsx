@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
+import { useFloatingMenu } from '../lib/useFloatingMenu';
 
 export interface SimpleSelectProps {
   label?: string;
@@ -28,24 +30,28 @@ export const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const listboxRef = useRef<HTMLDivElement>(null);
   const generatedId = useId();
   const selectId = id || generatedId;
   const listboxId = `${selectId}-listbox`;
 
+  const { position: menuPos, menuRef, measure: measureMenu } = useFloatingMenu(isOpen, triggerRef);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      // 面板通过 portal 挂到 body，不在 container 内
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [menuRef]);
 
   const openDropdown = () => {
     const idx = options.indexOf(value);
     setActiveIndex(idx >= 0 ? idx : 0);
+    measureMenu();
     setIsOpen(true);
   };
 
@@ -128,14 +134,20 @@ export const SimpleSelect: React.FC<SimpleSelectProps> = ({
         <ChevronDown size={18} className={`cs-select-chevron ${isOpen ? 'open' : ''}`} />
       </button>
 
-      {isOpen && (
+      {isOpen && menuPos && createPortal(
         <div
           id={listboxId}
-          ref={listboxRef}
+          ref={menuRef}
           role="listbox"
           tabIndex={-1}
           aria-label={ariaLabel || label || placeholder}
-          className="cs-select-dropdown"
+          className="cs-select-dropdown is-fixed"
+          style={{
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            maxHeight: menuPos.maxHeight,
+          }}
         >
           {options.map((opt, index) => {
             const isSelected = value === opt;
@@ -158,7 +170,8 @@ export const SimpleSelect: React.FC<SimpleSelectProps> = ({
               </div>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

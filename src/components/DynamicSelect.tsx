@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useFloatingMenu } from '../lib/useFloatingMenu';
 import { useAppContext } from '../contexts/AppContext';
 
 export interface DynamicSelectProps {
@@ -27,17 +28,10 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [activeIndex, setActiveIndex] = useState<number>(-1);
 
-  const [menuPos, setMenuPos] = useState<{
-    top: number;
-    left: number;
-    width: number;
-    maxHeight: number;
-  } | null>(null);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
+  const { position: menuPos, menuRef, measure: measureMenu } = useFloatingMenu(isOpen, triggerRef);
   const generatedId = useId();
   const selectId = id || generatedId;
   const listboxId = `${selectId}-listbox`;
@@ -92,47 +86,10 @@ export const DynamicSelect: React.FC<DynamicSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 面板 fixed 定位，跟随滚动与窗口变化重算
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const reposition = () => {
-      const trigger = triggerRef.current;
-      if (!trigger) return;
-      const rect = trigger.getBoundingClientRect();
-      const top = rect.bottom + 8;
-      setMenuPos({
-        top,
-        left: rect.left,
-        width: rect.width,
-        maxHeight: Math.max(160, window.innerHeight - top - 12),
-      });
-    };
-
-    reposition();
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
-    return () => {
-      window.removeEventListener('scroll', reposition, true);
-      window.removeEventListener('resize', reposition);
-    };
-  }, [isOpen]);
-
   const openDropdown = () => {
     const idx = options.indexOf(value);
     setActiveIndex(idx >= 0 ? idx : 0);
-
-    const trigger = triggerRef.current;
-    if (trigger) {
-      const rect = trigger.getBoundingClientRect();
-      const top = rect.bottom + 8;
-      setMenuPos({
-        top,
-        left: rect.left,
-        width: rect.width,
-        maxHeight: Math.max(160, window.innerHeight - top - 12),
-      });
-    }
+    measureMenu();
     setIsOpen(true);
   };
 
