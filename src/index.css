@@ -2109,6 +2109,323 @@ textarea.cs-input {
 }
 
 /* ==========================================================================
+   Welcome page
+   动效：逐字入场 / 滚动分镜 / 磁吸按钮，全部可被 prefers-reduced-motion 降级
+   ========================================================================== */
+.cs-welcome {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.cs-welcome-inner {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.cs-welcome-hero {
+  max-width: 760px;
+  margin-inline: auto;
+  padding-top: clamp(64px, 14vh, 132px);
+  padding-bottom: clamp(48px, 8vh, 88px);
+  text-align: center;
+}
+
+.cs-welcome-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+  padding: 4px 12px 4px 10px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-elevated);
+  color: var(--color-ink-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+}
+
+.cs-welcome-title {
+  margin: 0;
+  font-size: clamp(30px, 5.2vw, 52px);
+  line-height: 1.22;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cs-welcome-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.cs-welcome-char {
+  display: inline-block;
+  transform: translateY(118%);
+  animation: cs-welcome-char-in 0.85s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+@keyframes cs-welcome-char-in {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.cs-welcome-sub {
+  margin: var(--space-4) auto 0;
+  max-width: 520px;
+  color: var(--color-ink-2);
+  font-size: var(--fs-body);
+  line-height: 1.75;
+}
+
+.cs-welcome-rise {
+  opacity: 0;
+  animation: cs-welcome-rise 0.7s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+@keyframes cs-welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cs-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.cs-welcome-cta {
+  will-change: transform;
+}
+
+/* 滚动分镜 */
+.cs-welcome-stage {
+  position: relative;
+  height: 220vh;
+}
+
+.cs-welcome-stage-inner {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.cs-welcome-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cs-welcome-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  opacity: 0.3;
+  transition: opacity 0.45s var(--ease-out);
+}
+
+.cs-welcome-step.is-active {
+  opacity: 1;
+}
+
+.cs-welcome-step-index {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  line-height: 26px;
+  color: var(--color-ink-3);
+}
+
+.cs-welcome-step-title {
+  margin: 0 0 4px;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 600;
+}
+
+.cs-welcome-step-body {
+  margin: 0;
+  max-width: 360px;
+  color: var(--color-ink-2);
+  font-size: var(--fs-label);
+  line-height: 1.7;
+}
+
+.cs-welcome-card {
+  padding: var(--space-4);
+  background-color: var(--color-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-modal);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.45s var(--ease-out);
+}
+
+.cs-welcome-card[data-step='1'] {
+  transform: scale(0.97) rotate(-1.2deg);
+}
+
+.cs-welcome-card[data-step='2'] {
+  transform: scale(0.94) rotate(-2.5deg);
+}
+
+.cs-welcome-screens {
+  position: relative;
+  min-height: 300px;
+}
+
+/* 减弱动效时不做分镜，三屏直接摊开 */
+.cs-welcome-screens.is-reduced {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cs-welcome-screens.is-reduced .cs-welcome-screen {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cs-welcome-screen {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.45s var(--ease-out);
+  pointer-events: none;
+}
+
+.cs-welcome-screen.is-active {
+  opacity: 1;
+}
+
+.cs-welcome-raw {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 2;
+  color: var(--color-ink-3);
+  word-break: break-word;
+}
+
+.cs-welcome-points {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: var(--fs-label);
+  line-height: 1.7;
+  color: var(--color-ink);
+}
+
+.cs-welcome-strike {
+  margin: var(--space-4) 0 0;
+  font-size: var(--fs-caption);
+  color: var(--color-ink-3);
+  text-decoration: line-through;
+}
+
+.cs-welcome-report-head {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-serif);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.cs-welcome-report-body {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 14.5px;
+  line-height: 1.95;
+  color: var(--color-ink);
+}
+
+.cs-welcome-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--container-pad) var(--space-6);
+  color: var(--color-ink-3);
+  font-size: var(--fs-caption);
+}
+
+@media (max-width: 899px) {
+  .cs-welcome-stage {
+    height: auto;
+  }
+
+  .cs-welcome-stage-inner {
+    position: static;
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    padding-block: var(--space-6);
+  }
+
+  .cs-welcome-step {
+    opacity: 1;
+  }
+
+  .cs-welcome-card,
+  .cs-welcome-card[data-step='1'],
+  .cs-welcome-card[data-step='2'] {
+    transform: none;
+  }
+
+  .cs-welcome-screens {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .cs-welcome-screen {
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-welcome-char,
+  .cs-welcome-rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .cs-welcome-card,
+  .cs-welcome-screen,
+  .cs-welcome-step {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
    Dark theme
    data-theme 由 index.html 的内联脚本在首帧前写入（跟随系统时也会被解析成
    light / dark），因此这里只需要处理 dark 一种情况。

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppProvider, useAppContext } from './contexts/AppContext';
-import { AuthModal } from './components/AuthModal';
+import { WelcomePage } from './components/WelcomePage';
 import { SettingsModal } from './components/SettingsModal';
 import { ReportGenerator } from './components/ReportGenerator';
 import { ApiUsageDashboard } from './components/ApiUsageDashboard';
@@ -28,9 +28,9 @@ const MainApp: React.FC = () => {
     );
   }
 
-  // If not logged in and not guest, show Auth screen
+  // 未登录且非游客：先看欢迎页，由它引导到登录或游客模式
   if (!user && !isGuest) {
-    return <AuthModal />;
+    return <WelcomePage />;
   }
 
   // If no API key configured, force settings modal
