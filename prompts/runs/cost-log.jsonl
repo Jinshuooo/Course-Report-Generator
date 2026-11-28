@@ -10,3 +10,4 @@
 {"label":"c-v2-r2","system":"prompts/system-v2.md","input":"prompts/cases/case-c-exam-analysis.txt","model":"deepseek-v4-flash","prompt_tokens":1712,"completion_tokens":850,"cost_cny":0.0102,"seconds":"8.0","at":"2026-11-18T01:24:44.056Z"}
 {"label":"c-v2-meta","system":"prompts/system-v2.md","input":"prompts/cases/case-c-exam-analysis.txt","model":"deepseek-v4-flash","prompt_tokens":1790,"completion_tokens":736,"cost_cny":0.0095,"seconds":"6.6","at":"2026-11-18T01:31:37.259Z"}
 {"label":"a-v3","system":"prompts/system-v2.md","input":"E:/Downloads/20261114142555-理化生及升学备考辅导-逐字稿文本-1.txt","model":"deepseek-v4-flash","prompt_tokens":25198,"completion_tokens":1750,"cost_cny":0.0644,"seconds":"12.2","at":"2026-11-23T06:43:14.385Z"}
+{"label":"d-v3","system":"prompts/system-v2.md","input":"prompts/cases/case-d-two-subjects.txt","model":"deepseek-v4-flash","prompt_tokens":1886,"completion_tokens":1203,"cost_cny":0.0134,"seconds":"5.9","at":"2026-11-28T13:46:06.924Z"}
