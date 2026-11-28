@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Modal, type ModalHandle } from './ui/Modal';
+import { APP_VERSION } from '../lib/version';
 import { Key, Check, Eye, EyeOff, ExternalLink } from 'lucide-react';
 
 export interface SettingsModalProps {
@@ -167,6 +168,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 <span className="cs-info-value">
                   {isGuest ? '仅本地浏览器' : '云端账户'}
                 </span>
+              </div>
+              <div className="cs-info-row">
+                <span className="cs-info-key">版本</span>
+                <span className="cs-info-value">v{APP_VERSION}</span>
               </div>
             </div>
           </section>
